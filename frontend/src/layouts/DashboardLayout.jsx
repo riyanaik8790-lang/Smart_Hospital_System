@@ -36,6 +36,8 @@ const DashboardLayout = () => {
             ? storedRole.charAt(0).toUpperCase() + storedRole.slice(1)
             : 'Admin';
     });
+    const role = (localStorage.getItem('role') || '').toLowerCase();
+    const canView = (...roles) => roles.includes(role);
 
     const navigate = useNavigate();
 
@@ -156,7 +158,7 @@ const DashboardLayout = () => {
                 </div>
 
                 <div className="nav-menu">
-                    <NavLink
+                    {canView('admin') && <NavLink
                         to="/app/dashboard"
                         className={({ isActive }) =>
                             `nav-item ${isActive ? 'active' : ''}`
@@ -164,7 +166,7 @@ const DashboardLayout = () => {
                     >
                         <LayoutDashboard />
                         Dashboard
-                    </NavLink>
+                    </NavLink>}
 
                     <NavLink
                         to="/app/patients"
@@ -176,7 +178,7 @@ const DashboardLayout = () => {
                         Patients
                     </NavLink>
 
-                    <NavLink
+                    {canView('admin') && <NavLink
                         to="/app/queue"
                         className={({ isActive }) =>
                             `nav-item ${isActive ? 'active' : ''}`
@@ -184,9 +186,9 @@ const DashboardLayout = () => {
                     >
                         <AlertCircle />
                         Priority Queue
-                    </NavLink>
+                    </NavLink>}
 
-                    <NavLink
+                    {canView('admin', 'doctor', 'receptionist') && <NavLink
                         to="/app/doctors"
                         className={({ isActive }) =>
                             `nav-item ${isActive ? 'active' : ''}`
@@ -194,9 +196,9 @@ const DashboardLayout = () => {
                     >
                         <Stethoscope />
                         Doctors
-                    </NavLink>
+                    </NavLink>}
 
-                    <NavLink
+                    {canView('admin', 'doctor', 'nurse', 'receptionist') && <NavLink
                         to="/app/rooms"
                         className={({ isActive }) =>
                             `nav-item ${isActive ? 'active' : ''}`
@@ -204,9 +206,9 @@ const DashboardLayout = () => {
                     >
                         <Bed />
                         Rooms
-                    </NavLink>
+                    </NavLink>}
 
-                    <NavLink
+                    {canView('admin') && <NavLink
                         to="/app/efficiency"
                         className={({ isActive }) =>
                             `nav-item ${isActive ? 'active' : ''}`
@@ -214,16 +216,16 @@ const DashboardLayout = () => {
                     >
                         <TrendingUp />
                         Efficiency
-                    </NavLink>
+                    </NavLink>}
 
-                    <div
+                    {canView('admin') && <div
                         className="nav-item"
                         onClick={handleReport}
                         style={{ cursor: 'pointer' }}
                     >
                         <FileText />
                         Reports
-                    </div>
+                    </div>}
                 </div>
 
                 <div
