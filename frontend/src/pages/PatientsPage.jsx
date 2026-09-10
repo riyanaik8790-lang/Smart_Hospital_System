@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useOutletContext } from 'react-router-dom';
 
 import { Plus, AlertTriangle, LogOut, CheckCircle, XCircle } from 'lucide-react';
 import { authFetch } from '../api/authFetch';
@@ -9,6 +10,7 @@ const DEPARTMENTS = [
 ];
 
 const PatientsPage = () => {
+    const { globalSearch = '' } = useOutletContext() || {};
     const [patients, setPatients] = useState([]);
     const [formData, setFormData] = useState({
         name: '', age: '', department: 'General', heartRate: ''
@@ -56,6 +58,9 @@ const PatientsPage = () => {
     };
 
     const currentPriority = calculatePriority(formData.heartRate, formData.department);
+    const filteredPatients = patients.filter((patient) =>
+        !globalSearch || patient.name?.toLowerCase().includes(globalSearch.toLowerCase())
+    );
 
     const handleInputChange = (e) => {
         const { name, value } = e.target;
@@ -241,7 +246,7 @@ const PatientsPage = () => {
                             </tr>
                         </thead>
                         <tbody>
-                            {patients.length > 0 ? patients.map((patient) => (
+                            {filteredPatients.length > 0 ? filteredPatients.map((patient) => (
                                 <tr key={patient.patient_id}>
                                     <td>#{patient.patient_id}</td>
                                     <td style={{ fontWeight: 500 }}>{patient.name}</td>
@@ -298,7 +303,7 @@ const PatientsPage = () => {
                                     </td>
                                 </tr>
                             )) : (
-                                <tr><td colSpan="7" className="text-center" style={{ padding: '32px', color: 'var(--text-gray)' }}>No patients currently in the system.</td></tr>
+                                <tr><td colSpan="7" className="text-center" style={{ padding: '32px', color: 'var(--text-gray)' }}>No patients found matching your search.</td></tr>
                             )}
                         </tbody>
                     </table>

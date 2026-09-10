@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Outlet, NavLink, useNavigate } from 'react-router-dom';
+import { Outlet, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { authFetch } from '../api/authFetch';
 import {
     LayoutDashboard,
@@ -20,6 +20,8 @@ import {
 
 const DashboardLayout = () => {
     const [collapsed, setCollapsed] = useState(false);
+    const [searchInput, setSearchInput] = useState('');
+    const [globalSearch, setGlobalSearch] = useState('');
 
     const [showNotif, setShowNotif] = useState(false);
     const [showProfile, setShowProfile] = useState(false);
@@ -42,6 +44,14 @@ const DashboardLayout = () => {
     const canView = (...roles) => roles.includes(role);
 
     const navigate = useNavigate();
+    const location = useLocation();
+    const hideTopbarTools = new Set([
+        '/app/dashboard',
+        '/app/queue',
+        '/app/priority-queue',
+        '/app/efficiency',
+        '/app/reports'
+    ]).has(location.pathname);
 
     const notifRef = useRef();
     const profileRef = useRef();
@@ -81,6 +91,16 @@ const DashboardLayout = () => {
 
         return () => clearInterval(interval);
     }, []);
+
+    useEffect(() => {
+        const timeout = window.setTimeout(() => setGlobalSearch(searchInput.trim()), 250);
+        return () => window.clearTimeout(timeout);
+    }, [searchInput]);
+
+    useEffect(() => {
+        setSearchInput('');
+        setGlobalSearch('');
+    }, [location.pathname]);
 
     // ==========================
     // CLOSE DROPDOWN ON OUTSIDE CLICK
@@ -265,30 +285,35 @@ const DashboardLayout = () => {
 
                     {/* LEFT */}
                     <div className="topbar-left">
-                        <button
-                            className="toggle-btn"
-                            onClick={() => setCollapsed(!collapsed)}
-                        >
-                            <Menu size={20} />
-                        </button>
+                        {!hideTopbarTools && <>
+                            <button
+                                className="toggle-btn"
+                                onClick={() => setCollapsed(!collapsed)}
+                                aria-label="Toggle sidebar"
+                            >
+                                <Menu size={20} />
+                            </button>
 
-                        <div style={{ position: 'relative' }}>
-                            <Search
-                                size={18}
-                                style={{
-                                    position: 'absolute',
-                                    left: '10px',
-                                    top: '10px'
-                                }}
-                            />
+                            <div style={{ position: 'relative' }}>
+                                <Search
+                                    size={18}
+                                    style={{
+                                        position: 'absolute',
+                                        left: '10px',
+                                        top: '10px'
+                                    }}
+                                />
 
-                            <input
-                                type="text"
-                                placeholder="Search..."
-                                className="form-control"
-                                style={{ paddingLeft: '35px' }}
-                            />
-                        </div>
+                                <input
+                                    type="search"
+                                    placeholder="Search this page..."
+                                    className="form-control"
+                                    value={searchInput}
+                                    onChange={(event) => setSearchInput(event.target.value)}
+                                    style={{ paddingLeft: '35px' }}
+                                />
+                            </div>
+                        </>}
                     </div>
 
                     {/* RIGHT */}
@@ -461,7 +486,7 @@ const DashboardLayout = () => {
 
                 {/* PAGE CONTENT */}
                 <div className="page-content">
-                    <Outlet />
+                    <Outlet context={{ globalSearch }} />
                 </div>
             </div>
         </div>

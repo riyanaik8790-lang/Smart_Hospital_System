@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
+import { useOutletContext } from 'react-router-dom';
 import { AlertTriangle, CalendarDays, CheckCircle, Plus, XCircle } from 'lucide-react';
 
 const EMPTY_FORM = {
@@ -22,6 +23,7 @@ const statusClass = (status) => {
 };
 
 const AppointmentsPage = () => {
+  const { globalSearch = '' } = useOutletContext() || {};
   const [appointments, setAppointments] = useState([]);
   const [doctors, setDoctors] = useState([]);
   const [formData, setFormData] = useState(EMPTY_FORM);
@@ -31,6 +33,11 @@ const AppointmentsPage = () => {
   const role = (localStorage.getItem('role') || '').toLowerCase();
   const canBook = ['admin', 'receptionist'].includes(role);
   const canUpdate = ['admin', 'doctor'].includes(role);
+  const filteredAppointments = appointments.filter((appointment) => {
+    const query = globalSearch.toLowerCase();
+    return !query || appointment.patient_name?.toLowerCase().includes(query) ||
+      appointment.doctor_name?.toLowerCase().includes(query);
+  });
   const phoneError = formData.patient_phone && !/^\d{10}$/.test(formData.patient_phone)
     ? 'Phone number must be 10 digits'
     : '';
@@ -228,7 +235,7 @@ const AppointmentsPage = () => {
               <tr><th>ID</th><th>Patient</th><th>Doctor</th><th>Date</th><th>Time</th><th>Reason</th><th>Status</th><th>Actions</th></tr>
             </thead>
             <tbody>
-              {appointments.length ? appointments.map((appointment) => (
+              {filteredAppointments.length ? filteredAppointments.map((appointment) => (
                 <tr key={appointment.appointment_id}>
                   <td>#{appointment.appointment_id}</td>
                   <td><strong>{appointment.patient_name}</strong><br /><span className="help-text">{appointment.patient_phone || 'No phone'}</span></td>
@@ -248,7 +255,7 @@ const AppointmentsPage = () => {
                   </td>
                 </tr>
               )) : (
-                <tr><td colSpan="8" className="text-center" style={{ padding: '32px', color: 'var(--text-gray)' }}>No appointments found.</td></tr>
+                <tr><td colSpan="8" className="text-center" style={{ padding: '32px', color: 'var(--text-gray)' }}>No appointments found matching your search.</td></tr>
               )}
             </tbody>
           </table>

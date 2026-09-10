@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useOutletContext } from 'react-router-dom';
 import {
     Bed,
     Search,
@@ -9,6 +10,7 @@ import {
 import { authFetch } from '../api/authFetch';
 
 const RoomsPage = () => {
+    const { globalSearch = '' } = useOutletContext() || {};
     const [rooms, setRooms] = useState([]);
 
     // NEW STATES
@@ -41,13 +43,16 @@ const RoomsPage = () => {
 
     // FILTERED ROOMS
     const filteredRooms = rooms.filter((room) => {
-        const matchesSearch =
+        const matchesQuery = (query) =>
             room.room_number
                 ?.toLowerCase()
-                .includes(searchTerm.toLowerCase()) ||
+                .includes(query) ||
             room.type
                 ?.toLowerCase()
-                .includes(searchTerm.toLowerCase());
+                .includes(query);
+
+        const matchesSearch = matchesQuery(searchTerm.toLowerCase()) &&
+            matchesQuery(globalSearch.toLowerCase());
 
         const matchesType =
             selectedType === 'All Types'

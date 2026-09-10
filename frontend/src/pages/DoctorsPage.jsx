@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useOutletContext } from 'react-router-dom';
 import { Search, Phone, Mail, Stethoscope, Star, ChevronDown, ChevronUp } from 'lucide-react';
 import { authFetch } from '../api/authFetch';
 
@@ -10,6 +11,7 @@ const SPECIALTIES = [
 ];
 
 const DoctorsPage = () => {
+    const { globalSearch = '' } = useOutletContext() || {};
     const [doctorsList, setDoctorsList] = useState([]);
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedSpecialty, setSelectedSpecialty] = useState('All specialities');
@@ -37,11 +39,13 @@ const DoctorsPage = () => {
 
     // Filter logic: letter-based search + specialty filter
     const filteredDoctors = doctorsList.filter((doctor) => {
-        const q = searchTerm.toLowerCase();
+        const localQuery = searchTerm.toLowerCase();
+        const headerQuery = globalSearch.toLowerCase();
+        const matchesQuery = (query) => !query ||
+            doctor.name?.toLowerCase().includes(query) ||
+            doctor.specialization?.toLowerCase().includes(query);
         // Match name or specialty with the search query (e.g. typing 'k' matches 'Kumar')
-        const matchesSearch = !q ||
-            doctor.name?.toLowerCase().includes(q) ||
-            doctor.specialization?.toLowerCase().includes(q);
+        const matchesSearch = matchesQuery(localQuery) && matchesQuery(headerQuery);
         
         const matchesSpecialty =
             selectedSpecialty === 'All specialities' ||
@@ -191,7 +195,7 @@ const DoctorsPage = () => {
 
             {filteredDoctors.length === 0 && (
                 <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text-gray)' }}>
-                    No doctors found for "{searchTerm}" in {selectedSpecialty}
+                    No doctors found matching your search.
                 </div>
             )}
         </>
