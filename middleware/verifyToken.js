@@ -14,6 +14,11 @@ async function verifyToken(req, res, next) {
 
   try {
     req.user = jwt.verify(token, SECRET_KEY);
+  } catch {
+    return res.status(401).json({ message: "Invalid or expired authentication token." });
+  }
+
+  try {
     const [users] = await db.execute(
       "SELECT is_active FROM users WHERE user_id = $1",
       [req.user.id]
@@ -22,8 +27,9 @@ async function verifyToken(req, res, next) {
       return res.status(401).json({ message: "This account has been deactivated." });
     }
     next();
-  } catch {
-    return res.status(401).json({ message: "Invalid or expired authentication token." });
+  } catch (err) {
+    console.error("Authenticated user lookup failed:", err);
+    return res.status(500).json({ message: "Unable to verify the active account." });
   }
 }
 

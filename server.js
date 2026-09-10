@@ -2,7 +2,7 @@ require("dotenv").config();
 
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
-const SECRET_KEY = "hospital_secret_key";
+const SECRET_KEY = process.env.JWT_SECRET || "hospital_secret_key";
 
 const db = require("./db");
 const verifyToken = require("./middleware/verifyToken");
