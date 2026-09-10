@@ -1,0 +1,76 @@
+{
+  "users": [
+    {
+      "user_id": 1,
+      "email": "admin@hospital.com",
+      "password": "$2b$10$KIXxPfxVIs.ZfvqPb1bIR.Rxa8pT6wc7Z8cPq7J3ZlVfM8Ib2FvC.",
+      "role": "admin",
+      "created_at": "2026-03-04T02:58:46.000Z"
+    },
+    {
+      "user_id": 2,
+      "email": "joe@hospital.com",
+      "password": "$2b$10$KIXxPfxVIs.ZfvqPb1bIR.Rxa8pT6wc7Z8cPq7J3ZlVfM8Ib2FvC.",
+      "role": "doctor",
+      "created_at": "2026-03-04T02:58:46.000Z"
+    },
+    {
+      "user_id": 3,
+      "email": "sarah@hospital.com",
+      "password": "$2b$10$KIXxPfxVIs.ZfvqPb1bIR.Rxa8pT6wc7Z8cPq7J3ZlVfM8Ib2FvC.",
+      "role": "doctor",
+      "created_at": "2026-03-04T02:58:46.000Z"
+    },
+    {
+      "user_id": 4,
+      "email": "mike@hospital.com",
+      "password": "$2b$10$KIXxPfxVIs.ZfvqPb1bIR.Rxa8pT6wc7Z8cPq7J3ZlVfM8Ib2FvC.",
+      "role": "doctor",
+      "created_at": "2026-03-04T02:58:46.000Z"
+    }
+  ],
+  "doctors": [
+    {
+      "doctor_id": 1,
+      "name": "Dr. Joe",
+      "specialization": "Cardiology",
+      "status": "Busy",
+      "created_at": "2026-03-04T02:58:46.000Z"
+    },
+    {
+      "doctor_id": 2,
+      "name": "Dr. Sarah",
+      "specialization": "Neurology",
+      "status": "Busy",
+      "created_at": "2026-03-04T02:58:46.000Z"
+    },
+    {
+      "doctor_id": 3,
+      "name": "Dr. Mike",
+      "specialization": "General",
+      "status": "Available",
+      "created_at": "2026-03-04T02:58:46.000Z"
+    },
+    {
+      "doctor_id": 4,
+      "name": "Dr. Emily",
+      "specialization": "Emergency",
+      "status": "Available",
+      "created_at": "2026-03-04T02:58:46.000Z"
+    },
+    {
+      "doctor_id": 5,
+      "name": "Dr. David",
+      "specialization": "Orthopedic",
+      "status": "Available",
+      "created_at": "2026-03-04T02:58:46.000Z"
+    },
+    {
+      "doctor_id": 6,
+      "name": "Dr. Lisa",
+      "specialization": "Cardiology",
+      "status": "Busy",
+      "created_at": "2026-03-04T02:58:46.000Z"
+    }
+  ]
+}

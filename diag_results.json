@@ -1,0 +1,200 @@
+{
+  "doctors": [
+    {
+      "doctor_id": 1,
+      "name": "Dr. Joe",
+      "specialization": "Cardiology",
+      "status": "Available"
+    },
+    {
+      "doctor_id": 2,
+      "name": "Dr. Sarah",
+      "specialization": "Neurology",
+      "status": "Available"
+    },
+    {
+      "doctor_id": 3,
+      "name": "Dr. Mike",
+      "specialization": "General",
+      "status": "Available"
+    },
+    {
+      "doctor_id": 4,
+      "name": "Dr. Emily",
+      "specialization": "Emergency",
+      "status": "Available"
+    },
+    {
+      "doctor_id": 5,
+      "name": "Dr. David",
+      "specialization": "Orthopedic",
+      "status": "Available"
+    },
+    {
+      "doctor_id": 6,
+      "name": "Dr. Lisa",
+      "specialization": "Cardiology",
+      "status": "Available"
+    }
+  ],
+  "rooms": [
+    {
+      "room_id": 1,
+      "room_number": "101",
+      "type": "General",
+      "status": "Available"
+    },
+    {
+      "room_id": 2,
+      "room_number": "102",
+      "type": "General",
+      "status": "Available"
+    },
+    {
+      "room_id": 3,
+      "room_number": "103",
+      "type": "General",
+      "status": "Available"
+    },
+    {
+      "room_id": 4,
+      "room_number": "104",
+      "type": "General",
+      "status": "Available"
+    },
+    {
+      "room_id": 5,
+      "room_number": "105",
+      "type": "ICU",
+      "status": "Available"
+    },
+    {
+      "room_id": 6,
+      "room_number": "106",
+      "type": "ICU",
+      "status": "Available"
+    },
+    {
+      "room_id": 7,
+      "room_number": "107",
+      "type": "Emergency",
+      "status": "Available"
+    },
+    {
+      "room_id": 8,
+      "room_number": "108",
+      "type": "Emergency",
+      "status": "Available"
+    },
+    {
+      "room_id": 9,
+      "room_number": "201",
+      "type": "General",
+      "status": "Available"
+    },
+    {
+      "room_id": 10,
+      "room_number": "202",
+      "type": "General",
+      "status": "Available"
+    },
+    {
+      "room_id": 11,
+      "room_number": "203",
+      "type": "ICU",
+      "status": "Available"
+    },
+    {
+      "room_id": 12,
+      "room_number": "204",
+      "type": "Emergency",
+      "status": "Available"
+    }
+  ],
+  "patients": [
+    {
+      "patient_id": 1,
+      "name": "John Doe",
+      "status": "Discharged",
+      "doctor_id": 1,
+      "room_id": 1
+    },
+    {
+      "patient_id": 2,
+      "name": "Jane Smith",
+      "status": "Discharged",
+      "doctor_id": 2,
+      "room_id": 2
+    },
+    {
+      "patient_id": 3,
+      "name": "Robert Brown",
+      "status": "Discharged",
+      "doctor_id": 3,
+      "room_id": 5
+    },
+    {
+      "patient_id": 4,
+      "name": "Test cardiology",
+      "status": "Discharged",
+      "doctor_id": 1,
+      "room_id": 1
+    },
+    {
+      "patient_id": 5,
+      "name": "Rishab",
+      "status": "Discharged",
+      "doctor_id": 6,
+      "room_id": 2
+    },
+    {
+      "patient_id": 6,
+      "name": "Priyanka",
+      "status": "Discharged",
+      "doctor_id": 5,
+      "room_id": 2
+    },
+    {
+      "patient_id": 7,
+      "name": "Bhumi",
+      "status": "Discharged",
+      "doctor_id": 3,
+      "room_id": 3
+    },
+    {
+      "patient_id": 8,
+      "name": "Test Subagent",
+      "status": "Discharged",
+      "doctor_id": 2,
+      "room_id": 4
+    },
+    {
+      "patient_id": 9,
+      "name": "rrrs",
+      "status": "Discharged",
+      "doctor_id": 4,
+      "room_id": 5
+    },
+    {
+      "patient_id": 10,
+      "name": "Final Verification",
+      "status": "Discharged",
+      "doctor_id": 3,
+      "room_id": 1
+    },
+    {
+      "patient_id": 11,
+      "name": "PRIYA",
+      "status": "Discharged",
+      "doctor_id": 1,
+      "room_id": 1
+    },
+    {
+      "patient_id": 12,
+      "name": "SAHAS",
+      "status": "Discharged",
+      "doctor_id": 4,
+      "room_id": 2
+    }
+  ]
+}
