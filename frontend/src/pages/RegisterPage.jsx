@@ -72,7 +72,7 @@ const RegisterPage = () => {
                         <div className="auth-logo-icon">
                             <Activity size={24} />
                         </div>
-                        Smart Hospital
+                        Smart Hospital Management System
                     </div>
                     <h1 className="auth-title">Staff Registration</h1>
                     <p className="auth-subtitle">Create your hospital management account</p>

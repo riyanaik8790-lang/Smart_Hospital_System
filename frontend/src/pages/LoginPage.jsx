@@ -47,7 +47,7 @@ const LoginPage = () => {
                         <div className="auth-logo-icon">
                             <Activity size={24} />
                         </div>
-                        Smart Hospital
+                        Smart Hospital Management System
                     </div>
                     <h1 className="auth-title">Welcome Back</h1>
                     <p className="auth-subtitle">Login to the hospital management system</p>
