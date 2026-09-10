@@ -1,3 +1,5 @@
+require("dotenv").config();
+
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const SECRET_KEY = "hospital_secret_key";
@@ -8,7 +10,6 @@ const { requireRole } = require("./middleware/roleMiddleware");
 const express = require("express");
 const cors = require("cors");
 const path = require("path");
-require("dotenv").config();
 
 const app = express();
 app.use(cors());
