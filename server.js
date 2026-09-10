@@ -140,7 +140,7 @@ app.get("/dashboard", async (req, res) => {
 // =====================================================
 // EFFICIENCY DASHBOARD
 // =====================================================
-app.get("/api/efficiency", async (req, res) => {
+app.get("/api/efficiency", verifyToken, requireRole("admin"), async (req, res) => {
   try {
     const stats = {};
     const queries = {
@@ -189,7 +189,7 @@ app.get("/api/efficiency", async (req, res) => {
 // NORMAL PATIENT ADMISSION
 // =====================================================
 
-app.post("/add-patient", async (req, res) => {
+app.post("/add-patient", verifyToken, requireRole("admin", "receptionist"), async (req, res) => {
   try {
     const { name, age, category, priorityLevel, priorityLabel } = req.body;
 
@@ -258,7 +258,7 @@ async function admitPatient(res, name, age, category, priorityLevel, priorityLab
 // EMERGENCY ADMISSION
 // =====================================================
 
-app.post("/emergency-admit", async (req, res) => {
+app.post("/emergency-admit", verifyToken, requireRole("admin", "receptionist"), async (req, res) => {
   try {
     console.log("Processing emergency admission...");
 
@@ -352,7 +352,7 @@ app.put("/discharge/:id", verifyToken, requireRole("admin", "doctor"), async (re
 // DATA ROUTES
 // =====================================================
 
-app.get("/patients", async (req, res) => {
+app.get("/patients", verifyToken, requireRole("admin", "doctor", "nurse", "receptionist"), async (req, res) => {
   try {
     const sql = `
       SELECT 
@@ -379,7 +379,7 @@ app.get("/patients", async (req, res) => {
 // REPLACE YOUR OLD /doctors ROUTE WITH THIS
 // ==========================
 
-app.get("/doctors", async (req, res) => {
+app.get("/doctors", verifyToken, requireRole("admin", "doctor", "nurse", "receptionist"), async (req, res) => {
   try {
     const [result] = await db.execute(`
       SELECT 
@@ -406,7 +406,7 @@ app.get("/doctors", async (req, res) => {
   }
 });
 
-app.get("/rooms", async (req, res) => {
+app.get("/rooms", verifyToken, requireRole("admin", "doctor", "nurse", "receptionist"), async (req, res) => {
   try {
     const [result] = await db.execute("SELECT * FROM rooms");
     res.json(result);
