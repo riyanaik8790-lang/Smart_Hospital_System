@@ -9,6 +9,7 @@ import {
   ResponsiveContainer,
   Legend
 } from "recharts";
+import { Download } from "lucide-react";
 
 const Reports = () => {
   const [data, setData] = useState([]);
@@ -71,9 +72,44 @@ const Reports = () => {
       );
   }, []);
 
+  const downloadReport = () => {
+    const reportRows = [
+      ["Smart Hospital Performance Report"],
+      ["Generated", new Date().toLocaleString()],
+      [],
+      ["Metric", "Value"],
+      ["Bed Occupancy", `${stats.bedOccupancyRate || 0}%`],
+      ["Doctor Utilization", `${stats.doctorUtilizationRate || 0}%`],
+      ["Treatment Efficiency", `${stats.treatmentEfficiency || 0}%`],
+      ["Critical Load", `${stats.criticalLoad || 0}%`],
+      [],
+      ["Day", "Admitted", "Busy Doctors", "Discharged"],
+      ...data.map(({ day, admitted, busyDoctors, discharged }) => [day, admitted, busyDoctors, discharged])
+    ];
+
+    const csv = reportRows
+      .map((row) => row.map((value) => `"${String(value).replace(/"/g, '""')}"`).join(","))
+      .join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "smart-hospital-performance-report.csv";
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <div style={{ padding: "20px" }}>
       {/* HEADER */}
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          gap: "16px"
+        }}
+      >
       <h2
         style={{
           fontSize: "24px",
@@ -84,6 +120,18 @@ const Reports = () => {
       >
         📊 Smart Hospital Performance Dashboard
       </h2>
+        <button
+          type="button"
+          className="btn btn-primary"
+          onClick={downloadReport}
+          disabled={data.length === 0}
+          title="Download report as CSV"
+          style={{ marginBottom: "20px" }}
+        >
+          <Download size={18} />
+          Download report
+        </button>
+      </div>
 
       {/* KPI CARDS */}
       <div
