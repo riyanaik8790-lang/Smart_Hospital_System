@@ -612,6 +612,34 @@ app.get("/users", verifyToken, requireRole("admin"), async (req, res) => {
   }
 });
 
+app.get("/users/me/deactivation-status", verifyToken, async (req, res) => {
+  try {
+    const [users] = await db.execute(
+      "SELECT role FROM users WHERE user_id = $1 AND is_active = TRUE",
+      [req.user.id]
+    );
+
+    if (!users.length) {
+      return res.status(404).json({ message: "Active user account not found." });
+    }
+
+    const isAdmin = users[0].role.toLowerCase() === "admin";
+    let isOnlyActiveAdmin = false;
+
+    if (isAdmin) {
+      const [admins] = await db.execute(
+        "SELECT COUNT(*) AS count FROM users WHERE role = 'admin' AND is_active = TRUE"
+      );
+      isOnlyActiveAdmin = Number(admins[0].count) <= 1;
+    }
+
+    res.json({ canDeactivate: !isOnlyActiveAdmin, isOnlyActiveAdmin });
+  } catch (err) {
+    console.error("Deactivation status error:", err);
+    res.status(500).json({ message: "Unable to check account deactivation status." });
+  }
+});
+
 app.delete("/users/me", verifyToken, async (req, res) => {
   try {
     await deactivateAccount(req, res, req.user.id);
