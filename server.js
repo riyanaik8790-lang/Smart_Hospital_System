@@ -361,9 +361,14 @@ app.post("/appointments", verifyToken, requireRole("admin", "receptionist"), asy
   try {
     const { patient_name, patient_phone, doctor_id, appointment_date, appointment_time, reason } = req.body;
     const parsedDoctorId = Number(doctor_id);
+    const normalizedPhone = patient_phone?.trim() || null;
 
     if (!patient_name?.trim() || !appointment_date || !appointment_time?.trim() || !Number.isInteger(parsedDoctorId) || parsedDoctorId <= 0) {
       return res.status(400).json({ message: "Patient name, doctor, date, and time are required." });
+    }
+
+    if (normalizedPhone && !/^\d{10}$/.test(normalizedPhone)) {
+      return res.status(400).json({ message: "Phone number must be 10 digits." });
     }
 
     const [appointment] = await db.execute(
@@ -373,7 +378,7 @@ app.post("/appointments", verifyToken, requireRole("admin", "receptionist"), asy
        RETURNING appointment_id, patient_name, patient_phone, doctor_id, appointment_date, appointment_time, reason, status, created_at`,
       [
         patient_name.trim(),
-        patient_phone?.trim() || null,
+        normalizedPhone,
         parsedDoctorId,
         appointment_date,
         appointment_time.trim(),

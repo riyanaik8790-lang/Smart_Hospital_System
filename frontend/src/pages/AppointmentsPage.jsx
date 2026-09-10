@@ -27,9 +27,13 @@ const AppointmentsPage = () => {
   const [formData, setFormData] = useState(EMPTY_FORM);
   const [notification, setNotification] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [phoneTouched, setPhoneTouched] = useState(false);
   const role = (localStorage.getItem('role') || '').toLowerCase();
   const canBook = ['admin', 'receptionist'].includes(role);
   const canUpdate = ['admin', 'doctor'].includes(role);
+  const phoneError = formData.patient_phone && !/^\d{10}$/.test(formData.patient_phone)
+    ? 'Phone number must be 10 digits'
+    : '';
 
   const notify = (message, type = 'success') => {
     setNotification({ message, type });
@@ -68,11 +72,17 @@ const AppointmentsPage = () => {
 
   const handleChange = (event) => {
     const { name, value } = event.target;
-    setFormData((current) => ({ ...current, [name]: value }));
+    const nextValue = name === 'patient_phone'
+      ? value.replace(/\D/g, '').slice(0, 10)
+      : value;
+    setFormData((current) => ({ ...current, [name]: nextValue }));
   };
 
   const handleBook = async (event) => {
     event.preventDefault();
+    setPhoneTouched(true);
+    if (phoneError) return;
+
     setLoading(true);
     try {
       const response = await fetch('/appointments', {
@@ -83,6 +93,7 @@ const AppointmentsPage = () => {
       const data = await response.json();
       if (!response.ok) throw new Error(data.message || 'Unable to book appointment.');
       setFormData(EMPTY_FORM);
+      setPhoneTouched(false);
       notify('Appointment booked successfully.');
       fetchAppointments();
     } catch (error) {
@@ -154,7 +165,24 @@ const AppointmentsPage = () => {
                 </div>
                 <div className="input-group">
                   <label>Patient Phone</label>
-                  <input className="form-control" name="patient_phone" value={formData.patient_phone} onChange={handleChange} type="tel" />
+                  <input
+                    className="form-control"
+                    name="patient_phone"
+                    value={formData.patient_phone}
+                    onChange={handleChange}
+                    onBlur={() => setPhoneTouched(true)}
+                    type="tel"
+                    inputMode="numeric"
+                    maxLength={10}
+                    aria-invalid={Boolean(phoneError)}
+                    aria-describedby="patient-phone-error"
+                    style={{ borderColor: phoneTouched && phoneError ? 'var(--danger)' : undefined }}
+                  />
+                  {phoneTouched && phoneError && (
+                    <p id="patient-phone-error" className="help-text" style={{ color: 'var(--danger)' }}>
+                      {phoneError}
+                    </p>
+                  )}
                 </div>
                 <div className="input-group">
                   <label>Doctor *</label>
