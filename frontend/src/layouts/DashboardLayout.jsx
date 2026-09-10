@@ -151,7 +151,7 @@ const DashboardLayout = () => {
                         }}
                     >
                         <Activity size={18} />
-                        Smart Hospital
+                        Smart Hospital Management System
                     </div>
                 </div>
 

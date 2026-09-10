@@ -118,7 +118,7 @@ const Reports = () => {
           color: "#111827"
         }}
       >
-        📊 Smart Hospital Performance Dashboard
+       Report
       </h2>
         <button
           type="button"
