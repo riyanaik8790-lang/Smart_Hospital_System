@@ -56,6 +56,19 @@ app.post("/api/auth/login", async (req, res) => {
 app.post("/api/auth/register", async (req, res) => {
   try {
     const { name, email, password, role } = req.body;
+
+    const hasValidPassword =
+      typeof password === "string" &&
+      password.length >= 8 &&
+      /[A-Za-z]/.test(password) &&
+      /\d/.test(password);
+
+    if (!hasValidPassword) {
+      return res.status(400).json({
+        message: "Password must be at least 8 characters and include at least one letter and one number."
+      });
+    }
+
     const [existingUsers] = await db.execute(
       "SELECT user_id FROM users WHERE email=?",
       [email]

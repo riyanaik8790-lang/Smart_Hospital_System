@@ -2,18 +2,44 @@ import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Activity, Eye, EyeOff } from 'lucide-react';
 
+const getPasswordError = (value) => {
+    if (!value) return 'Password is required.';
+    if (value.length < 8) return 'Password must be at least 8 characters.';
+    if (!/[A-Za-z]/.test(value) || !/\d/.test(value)) {
+        return 'Password must include at least one letter and one number.';
+    }
+    return '';
+};
+
 const RegisterPage = () => {
     const navigate = useNavigate();
     const [name, setName] = useState('');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
+    const [confirmPassword, setConfirmPassword] = useState('');
     const [showPassword, setShowPassword] = useState(false);
+    const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+    const [passwordTouched, setPasswordTouched] = useState(false);
+    const [confirmPasswordTouched, setConfirmPasswordTouched] = useState(false);
+    const [submitAttempted, setSubmitAttempted] = useState(false);
     const [role, setRole] = useState('Doctor');
     const [error, setError] = useState('');
+
+    const passwordError = getPasswordError(password);
+    const confirmPasswordError = !confirmPassword
+        ? 'Please confirm your password.'
+        : password !== confirmPassword
+            ? 'Passwords do not match.'
+            : '';
 
     const handleRegister = async (e) => {
         e.preventDefault();
         setError('');
+        setSubmitAttempted(true);
+
+        if (passwordError || confirmPasswordError) {
+            return;
+        }
 
         try {
             const res = await fetch('/api/auth/register', {
@@ -102,8 +128,16 @@ const RegisterPage = () => {
                                 className="form-control"
                                 placeholder="Create a strong password"
                                 value={password}
-                                onChange={(e) => setPassword(e.target.value)}
-                                style={{ paddingRight: '46px' }}
+                                onChange={(e) => {
+                                    setPassword(e.target.value);
+                                    setPasswordTouched(true);
+                                }}
+                                aria-invalid={Boolean(passwordError)}
+                                aria-describedby="password-requirements password-error"
+                                style={{
+                                    paddingRight: '46px',
+                                    borderColor: passwordError && (passwordTouched || submitAttempted) ? 'var(--danger)' : undefined
+                                }}
                                 required
                             />
                             <button
@@ -125,6 +159,59 @@ const RegisterPage = () => {
                                 {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                             </button>
                         </div>
+                        <p id="password-requirements" className="help-text">
+                            Use at least 8 characters, including a letter and a number.
+                        </p>
+                        {passwordError && (passwordTouched || submitAttempted) && (
+                            <p id="password-error" className="help-text" style={{ color: 'var(--danger)' }}>
+                                {passwordError}
+                            </p>
+                        )}
+                    </div>
+                    <div className="input-group">
+                        <label className="input-label">Confirm Password</label>
+                        <div style={{ position: 'relative' }}>
+                            <input
+                                type={showConfirmPassword ? 'text' : 'password'}
+                                className="form-control"
+                                placeholder="Re-enter your password"
+                                value={confirmPassword}
+                                onChange={(e) => {
+                                    setConfirmPassword(e.target.value);
+                                    setConfirmPasswordTouched(true);
+                                }}
+                                aria-invalid={Boolean(confirmPasswordError)}
+                                aria-describedby="confirm-password-error"
+                                style={{
+                                    paddingRight: '46px',
+                                    borderColor: confirmPasswordError && (confirmPasswordTouched || submitAttempted) ? 'var(--danger)' : undefined
+                                }}
+                                required
+                            />
+                            <button
+                                type="button"
+                                onClick={() => setShowConfirmPassword((visible) => !visible)}
+                                aria-label={showConfirmPassword ? 'Hide confirm password' : 'Show confirm password'}
+                                title={showConfirmPassword ? 'Hide password' : 'Show password'}
+                                style={{
+                                    position: 'absolute',
+                                    right: '10px',
+                                    top: '50%',
+                                    transform: 'translateY(-50%)',
+                                    display: 'flex',
+                                    padding: '4px',
+                                    color: 'var(--text-gray)',
+                                    background: 'transparent'
+                                }}
+                            >
+                                {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                            </button>
+                        </div>
+                        {confirmPasswordError && (confirmPasswordTouched || submitAttempted) && (
+                            <p id="confirm-password-error" className="help-text" style={{ color: 'var(--danger)' }}>
+                                {confirmPasswordError}
+                            </p>
+                        )}
                     </div>
                     <button type="submit" className="btn btn-primary btn-block" style={{ marginTop: '20px' }}>
                         Create Account
