@@ -12,6 +12,7 @@ const ROOM_STATUSES = ['All', 'Available', 'Occupied', 'Cleaning'];
 
 const RoomsPage = () => {
     const [rooms, setRooms] = useState([]);
+    const canAddRoom = (localStorage.getItem('role') || '').toLowerCase() === 'admin';
 
     // NEW STATES
     const [searchInput, setSearchInput] = useState('');
@@ -100,7 +101,7 @@ const RoomsPage = () => {
                     </p>
                 </div>
 
-                <div
+                {canAddRoom && <div
                     style={{
                         display: 'flex',
                         gap: '8px'
@@ -114,7 +115,7 @@ const RoomsPage = () => {
                     >
                         Add New Room
                     </button>
-                </div>
+                </div>}
             </div>
 
             {/* STATS */}

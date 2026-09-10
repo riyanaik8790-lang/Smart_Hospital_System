@@ -24,7 +24,7 @@ app.use(express.json());
 app.post("/api/auth/login", async (req, res) => {
   try {
     const { email, password } = req.body;
-    const [result] = await db.execute("SELECT * FROM users WHERE email=?", [email]);
+    const [result] = await db.execute("SELECT * FROM users WHERE email=? AND is_active=TRUE", [email]);
 
     if (!result || result.length === 0)
       return res.status(404).json({ message: "User not found" });
@@ -92,6 +92,16 @@ app.post("/api/auth/register", async (req, res) => {
       "INSERT INTO users (name, email, password, role) VALUES (?, ?, ?, ?)",
       [name.trim(), email.trim().toLowerCase(), hashedPassword, role]
     );
+
+    // Keep staff identity and doctor assignment linked so account safeguards
+    // can find a doctor's appointments and admitted patients later.
+    if (role === "doctor") {
+      await db.execute(
+        `INSERT INTO doctors (user_id, name, specialization, status, email)
+         VALUES ($1, $2, 'General', 'Available', $3)`,
+        [insertResult.insertId, name.trim(), email.trim().toLowerCase()]
+      );
+    }
 
     const token = jwt.sign(
       { id: insertResult.insertId, role },
@@ -372,6 +382,17 @@ app.post("/appointments", verifyToken, requireRole("admin", "receptionist"), asy
       return res.status(400).json({ message: "Phone number must be 10 digits." });
     }
 
+    // Do not allow a stale form submission to assign work to a deactivated doctor.
+    const [activeDoctor] = await db.execute(
+      `SELECT d.doctor_id FROM doctors d
+       LEFT JOIN users u ON u.user_id = d.user_id
+       WHERE d.doctor_id = $1 AND (d.user_id IS NULL OR u.is_active = TRUE)`,
+      [parsedDoctorId]
+    );
+    if (!activeDoctor.length) {
+      return res.status(409).json({ message: "That doctor is no longer active. Choose another doctor." });
+    }
+
     const [appointment] = await db.execute(
       `INSERT INTO appointments
         (patient_name, patient_phone, doctor_id, appointment_date, appointment_time, reason)
@@ -487,6 +508,130 @@ app.delete("/appointments/:appointment_id", verifyToken, requireRole("admin", "r
   }
 });
 
+// =====================================================
+// ACCOUNT MANAGEMENT (soft delete)
+// =====================================================
+async function getDeactivationWarnings(userId) {
+  const [doctorRows] = await db.execute(
+    "SELECT doctor_id FROM doctors WHERE user_id = $1",
+    [userId]
+  );
+  if (!doctorRows.length) return { upcomingAppointments: 0, admittedPatients: 0 };
+
+  const doctorId = doctorRows[0].doctor_id;
+  const [[appointmentCount]] = await db.execute(
+    "SELECT COUNT(*) AS count FROM appointments WHERE doctor_id = $1 AND appointment_date >= CURRENT_DATE AND status = 'Scheduled'",
+    [doctorId]
+  );
+  const [[patientCount]] = await db.execute(
+    "SELECT COUNT(*) AS count FROM patients WHERE doctor_id = $1 AND LOWER(status) = 'admitted'",
+    [doctorId]
+  );
+  return {
+    upcomingAppointments: Number(appointmentCount.count) || 0,
+    admittedPatients: Number(patientCount.count) || 0
+  };
+}
+
+async function deactivateAccount(req, res, targetUserId) {
+  const [users] = await db.execute(
+    "SELECT user_id, name, role, is_active, auth_user_id FROM users WHERE user_id = $1",
+    [targetUserId]
+  );
+  const target = users[0];
+  if (!target) return res.status(404).json({ message: "User not found." });
+  if (!target.is_active) return res.status(400).json({ message: "This account is already deactivated." });
+
+  const confirmation = String(req.body.confirmation || "").trim();
+  if (confirmation !== "DELETE" && confirmation.toLowerCase() !== target.name.toLowerCase()) {
+    return res.status(400).json({ message: 'Type "DELETE" or the account name to confirm.' });
+  }
+
+  if (target.role === "admin") {
+    const [[adminCount]] = await db.execute(
+      "SELECT COUNT(*) AS count FROM users WHERE role = 'admin' AND is_active = TRUE"
+    );
+    if (Number(adminCount.count) <= 1) {
+      return res.status(409).json({ message: "The only active Admin account cannot be deactivated." });
+    }
+  }
+
+  const warnings = target.role === "doctor" ? await getDeactivationWarnings(target.user_id) : {};
+  if ((warnings.upcomingAppointments || warnings.admittedPatients) && req.body.override !== true) {
+    return res.status(409).json({
+      message: "This doctor still has assigned work. Reassign it or confirm the override.",
+      requiresOverride: true,
+      warnings
+    });
+  }
+
+  // Auth users are managed only from this server.  A service-role key is never
+  // sent to the browser.  Existing password-based installations simply leave
+  // auth_user_id NULL; their login is blocked by is_active above.
+  if (target.auth_user_id) {
+    const supabaseUrl = process.env.SUPABASE_URL;
+    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    if (!supabaseUrl || !serviceRoleKey) {
+      return res.status(503).json({ message: "Supabase Auth is not configured; account was not deactivated." });
+    }
+    const authResponse = await fetch(
+      `${supabaseUrl.replace(/\/$/, "")}/auth/v1/admin/users/${target.auth_user_id}`,
+      {
+        method: "PUT",
+        headers: {
+          apikey: serviceRoleKey,
+          Authorization: `Bearer ${serviceRoleKey}`,
+          "Content-Type": "application/json"
+        },
+        // Supabase bans the Auth account; the application record remains for history.
+        body: JSON.stringify({ ban_duration: "876000h" })
+      }
+    );
+    if (!authResponse.ok) {
+      console.error("Supabase Auth disable failed:", await authResponse.text());
+      return res.status(502).json({ message: "Could not disable the linked Auth account; account was not deactivated." });
+    }
+  }
+
+  await db.execute(
+    "UPDATE users SET is_active = FALSE, deleted_at = NOW() WHERE user_id = $1",
+    [target.user_id]
+  );
+  res.json({ message: "Account deactivated.", warnings });
+}
+
+app.get("/users", verifyToken, requireRole("admin"), async (req, res) => {
+  try {
+    const [users] = await db.execute(
+      "SELECT user_id, name, email, role, is_active, deleted_at, created_at FROM users ORDER BY is_active DESC, created_at DESC"
+    );
+    res.json(users);
+  } catch (err) {
+    console.error("List users error:", err);
+    res.status(500).json({ message: "Unable to load users." });
+  }
+});
+
+app.delete("/users/me", verifyToken, async (req, res) => {
+  try {
+    await deactivateAccount(req, res, req.user.id);
+  } catch (err) {
+    console.error("Self-deactivation error:", err);
+    res.status(500).json({ message: "Unable to deactivate account." });
+  }
+});
+
+app.delete("/users/:user_id", verifyToken, requireRole("admin"), async (req, res) => {
+  try {
+    const userId = Number(req.params.user_id);
+    if (!Number.isInteger(userId) || userId <= 0) return res.status(400).json({ message: "Invalid user ID." });
+    await deactivateAccount(req, res, userId);
+  } catch (err) {
+    console.error("Admin deactivation error:", err);
+    res.status(500).json({ message: "Unable to deactivate account." });
+  }
+});
+
 
 // =====================================================
 // DATA ROUTES
@@ -529,7 +674,9 @@ app.get("/doctors", verifyToken, async (req, res) => {
         status,
         phone,
         email
-      FROM doctors
+      FROM doctors d
+      LEFT JOIN users u ON u.user_id = d.user_id
+      WHERE d.user_id IS NULL OR u.is_active = TRUE
       ORDER BY doctor_id ASC
     `);
 

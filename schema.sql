@@ -9,6 +9,10 @@ CREATE TABLE IF NOT EXISTS users (
   email TEXT UNIQUE NOT NULL,
   password TEXT NOT NULL,
   role TEXT NOT NULL,
+  is_active BOOLEAN NOT NULL DEFAULT TRUE,
+  deleted_at TIMESTAMPTZ,
+  -- Set when this application user is linked to a Supabase Auth identity.
+  auth_user_id UUID UNIQUE,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -22,6 +26,7 @@ CREATE TABLE IF NOT EXISTS doctors (
   status TEXT DEFAULT 'Available',
   phone TEXT,
   email TEXT,
+  user_id BIGINT UNIQUE REFERENCES users(user_id),
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 

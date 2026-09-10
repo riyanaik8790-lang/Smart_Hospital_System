@@ -12,6 +12,7 @@ import EfficiencyDashboardPage from './pages/EfficiencyDashboardPage';
 import Reports from './pages/Reports';
 import ProfilePage from './pages/ProfilePage';
 import AppointmentsPage from './pages/AppointmentsPage';
+import UsersPage from './pages/UsersPage';
 
 const roleHome = {
   admin: '/app/dashboard',
@@ -55,6 +56,7 @@ function App() {
             <Route path="rooms" element={<RequireRole roles={['admin', 'doctor', 'nurse', 'receptionist']}><RoomsPage /></RequireRole>} />
             <Route path="efficiency" element={<RequireRole roles={['admin']}><EfficiencyDashboardPage /></RequireRole>} />
             <Route path="reports" element={<RequireRole roles={['admin']}><Reports /></RequireRole>} />
+            <Route path="users" element={<RequireRole roles={['admin']}><UsersPage /></RequireRole>} />
             <Route path="profile" element={<ProfilePage />} />
           </Route>
         </Route>

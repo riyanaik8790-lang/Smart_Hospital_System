@@ -14,7 +14,8 @@ import {
     Activity,
     TrendingUp,
     User,
-    CalendarDays
+    CalendarDays,
+    UserCog
 } from 'lucide-react';
 
 const DashboardLayout = () => {
@@ -225,6 +226,16 @@ const DashboardLayout = () => {
                     >
                         <Bed />
                         Rooms
+                    </NavLink>}
+
+                    {canView('admin') && <NavLink
+                        to="/app/users"
+                        className={({ isActive }) =>
+                            `nav-item ${isActive ? 'active' : ''}`
+                        }
+                    >
+                        <UserCog />
+                        User Management
                     </NavLink>}
 
                     {canView('admin') && <NavLink
