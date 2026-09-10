@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { useOutletContext } from 'react-router-dom';
 
-import { Plus, AlertTriangle, LogOut, CheckCircle, XCircle } from 'lucide-react';
+import { Plus, AlertTriangle, LogOut, CheckCircle, Search, XCircle } from 'lucide-react';
 import { authFetch } from '../api/authFetch';
 
 const DEPARTMENTS = [
@@ -10,8 +9,8 @@ const DEPARTMENTS = [
 ];
 
 const PatientsPage = () => {
-    const { globalSearch = '' } = useOutletContext() || {};
     const [patients, setPatients] = useState([]);
+    const [searchTerm, setSearchTerm] = useState('');
     const [formData, setFormData] = useState({
         name: '', age: '', department: 'General', heartRate: ''
     });
@@ -59,7 +58,7 @@ const PatientsPage = () => {
 
     const currentPriority = calculatePriority(formData.heartRate, formData.department);
     const filteredPatients = patients.filter((patient) =>
-        !globalSearch || patient.name?.toLowerCase().includes(globalSearch.toLowerCase())
+        !searchTerm || patient.name?.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
     const handleInputChange = (e) => {
@@ -172,6 +171,17 @@ const PatientsPage = () => {
                 <div>
                     <h1 className="page-title">Patient Management</h1>
                     <p className="page-subtitle">Auto-triage and manage hospital patients</p>
+                </div>
+                <div style={{ position: 'relative', minWidth: '240px' }}>
+                    <Search size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-light)' }} />
+                    <input
+                        type="search"
+                        className="form-control"
+                        placeholder="Search patients..."
+                        value={searchTerm}
+                        onChange={(event) => setSearchTerm(event.target.value)}
+                        style={{ paddingLeft: '36px' }}
+                    />
                 </div>
             </div>
 

@@ -10,7 +10,6 @@ import {
     AlertCircle,
     Menu,
     Bell,
-    Search,
     LogOut,
     Activity,
     TrendingUp,
@@ -20,8 +19,6 @@ import {
 
 const DashboardLayout = () => {
     const [collapsed, setCollapsed] = useState(false);
-    const [searchInput, setSearchInput] = useState('');
-    const [globalSearch, setGlobalSearch] = useState('');
 
     const [showNotif, setShowNotif] = useState(false);
     const [showProfile, setShowProfile] = useState(false);
@@ -91,16 +88,6 @@ const DashboardLayout = () => {
 
         return () => clearInterval(interval);
     }, []);
-
-    useEffect(() => {
-        const timeout = window.setTimeout(() => setGlobalSearch(searchInput.trim()), 250);
-        return () => window.clearTimeout(timeout);
-    }, [searchInput]);
-
-    useEffect(() => {
-        setSearchInput('');
-        setGlobalSearch('');
-    }, [location.pathname]);
 
     // ==========================
     // CLOSE DROPDOWN ON OUTSIDE CLICK
@@ -294,25 +281,6 @@ const DashboardLayout = () => {
                                 <Menu size={20} />
                             </button>
 
-                            <div style={{ position: 'relative' }}>
-                                <Search
-                                    size={18}
-                                    style={{
-                                        position: 'absolute',
-                                        left: '10px',
-                                        top: '10px'
-                                    }}
-                                />
-
-                                <input
-                                    type="search"
-                                    placeholder="Search this page..."
-                                    className="form-control"
-                                    value={searchInput}
-                                    onChange={(event) => setSearchInput(event.target.value)}
-                                    style={{ paddingLeft: '35px' }}
-                                />
-                            </div>
                         </>}
                     </div>
 
@@ -486,7 +454,7 @@ const DashboardLayout = () => {
 
                 {/* PAGE CONTENT */}
                 <div className="page-content">
-                    <Outlet context={{ globalSearch }} />
+                    <Outlet />
                 </div>
             </div>
         </div>

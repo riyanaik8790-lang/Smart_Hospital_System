@@ -1,6 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { useOutletContext } from 'react-router-dom';
-import { AlertTriangle, CalendarDays, CheckCircle, Plus, XCircle } from 'lucide-react';
+import { AlertTriangle, CalendarDays, CheckCircle, Plus, Search, XCircle } from 'lucide-react';
 
 const EMPTY_FORM = {
   patient_name: '',
@@ -23,8 +22,8 @@ const statusClass = (status) => {
 };
 
 const AppointmentsPage = () => {
-  const { globalSearch = '' } = useOutletContext() || {};
   const [appointments, setAppointments] = useState([]);
+  const [searchTerm, setSearchTerm] = useState('');
   const [doctors, setDoctors] = useState([]);
   const [formData, setFormData] = useState(EMPTY_FORM);
   const [notification, setNotification] = useState(null);
@@ -34,7 +33,7 @@ const AppointmentsPage = () => {
   const canBook = ['admin', 'receptionist'].includes(role);
   const canUpdate = ['admin', 'doctor'].includes(role);
   const filteredAppointments = appointments.filter((appointment) => {
-    const query = globalSearch.toLowerCase();
+    const query = searchTerm.toLowerCase();
     return !query || appointment.patient_name?.toLowerCase().includes(query) ||
       appointment.doctor_name?.toLowerCase().includes(query);
   });
@@ -148,6 +147,17 @@ const AppointmentsPage = () => {
         <div>
           <h1 className="page-title">Appointments</h1>
           <p className="page-subtitle">Book and manage scheduled hospital visits</p>
+        </div>
+        <div style={{ position: 'relative', minWidth: '240px' }}>
+          <Search size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-light)' }} />
+          <input
+            type="search"
+            className="form-control"
+            placeholder="Search appointments..."
+            value={searchTerm}
+            onChange={(event) => setSearchTerm(event.target.value)}
+            style={{ paddingLeft: '36px' }}
+          />
         </div>
       </div>
 
