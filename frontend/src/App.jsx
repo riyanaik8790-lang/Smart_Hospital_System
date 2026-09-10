@@ -11,6 +11,7 @@ import RoomsPage from './pages/RoomsPage';
 import EfficiencyDashboardPage from './pages/EfficiencyDashboardPage';
 import Reports from './pages/Reports';
 import ProfilePage from './pages/ProfilePage';
+import AppointmentsPage from './pages/AppointmentsPage';
 
 const roleHome = {
   admin: '/app/dashboard',
@@ -49,6 +50,7 @@ function App() {
             <Route path="dashboard" element={<RequireRole roles={['admin']}><DashboardPage /></RequireRole>} />
             <Route path="patients" element={<RequireRole roles={['admin', 'doctor', 'nurse', 'receptionist']}><PatientsPage /></RequireRole>} />
             <Route path="queue" element={<RequireRole roles={['admin']}><PriorityQueuePage /></RequireRole>} />
+            <Route path="appointments" element={<RequireRole roles={['admin', 'doctor', 'nurse', 'receptionist']}><AppointmentsPage /></RequireRole>} />
             <Route path="doctors" element={<RequireRole roles={['admin', 'doctor', 'receptionist']}><DoctorsPage /></RequireRole>} />
             <Route path="rooms" element={<RequireRole roles={['admin', 'doctor', 'nurse', 'receptionist']}><RoomsPage /></RequireRole>} />
             <Route path="efficiency" element={<RequireRole roles={['admin']}><EfficiencyDashboardPage /></RequireRole>} />

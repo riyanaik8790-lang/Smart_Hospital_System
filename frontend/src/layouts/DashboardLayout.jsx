@@ -13,7 +13,8 @@ import {
     LogOut,
     Activity,
     TrendingUp,
-    User
+    User,
+    CalendarDays
 } from 'lucide-react';
 
 const DashboardLayout = () => {
@@ -186,6 +187,16 @@ const DashboardLayout = () => {
                     >
                         <AlertCircle />
                         Priority Queue
+                    </NavLink>}
+
+                    {canView('admin', 'doctor', 'nurse', 'receptionist') && <NavLink
+                        to="/app/appointments"
+                        className={({ isActive }) =>
+                            `nav-item ${isActive ? 'active' : ''}`
+                        }
+                    >
+                        <CalendarDays />
+                        Appointments
                     </NavLink>}
 
                     {canView('admin', 'doctor', 'receptionist') && <NavLink

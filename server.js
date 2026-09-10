@@ -354,6 +354,133 @@ app.put("/discharge/:id", verifyToken, requireRole("admin", "doctor"), async (re
   }
 });
 
+// =====================================================
+// APPOINTMENTS (separate from patient admission)
+// =====================================================
+app.post("/appointments", verifyToken, requireRole("admin", "receptionist"), async (req, res) => {
+  try {
+    const { patient_name, patient_phone, doctor_id, appointment_date, appointment_time, reason } = req.body;
+    const parsedDoctorId = Number(doctor_id);
+
+    if (!patient_name?.trim() || !appointment_date || !appointment_time?.trim() || !Number.isInteger(parsedDoctorId) || parsedDoctorId <= 0) {
+      return res.status(400).json({ message: "Patient name, doctor, date, and time are required." });
+    }
+
+    const [appointment] = await db.execute(
+      `INSERT INTO appointments
+        (patient_name, patient_phone, doctor_id, appointment_date, appointment_time, reason)
+       VALUES ($1, $2, $3, $4, $5, $6)
+       RETURNING appointment_id, patient_name, patient_phone, doctor_id, appointment_date, appointment_time, reason, status, created_at`,
+      [
+        patient_name.trim(),
+        patient_phone?.trim() || null,
+        parsedDoctorId,
+        appointment_date,
+        appointment_time.trim(),
+        reason?.trim() || null
+      ]
+    );
+
+    res.status(201).json(appointment[0]);
+  } catch (err) {
+    console.error("Create appointment error:", err);
+    res.status(500).json({ message: "Unable to create appointment." });
+  }
+});
+
+app.get("/appointments", verifyToken, requireRole("admin", "doctor", "nurse", "receptionist"), async (req, res) => {
+  try {
+    const clauses = [];
+    const params = [];
+
+    if (req.query.doctor_id !== undefined) {
+      const doctorId = Number(req.query.doctor_id);
+      if (!Number.isInteger(doctorId) || doctorId <= 0) {
+        return res.status(400).json({ message: "doctor_id must be a positive integer." });
+      }
+      params.push(doctorId);
+      clauses.push(`a.doctor_id = $${params.length}`);
+    }
+
+    if (req.query.date !== undefined) {
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(req.query.date)) {
+        return res.status(400).json({ message: "date must use YYYY-MM-DD format." });
+      }
+      params.push(req.query.date);
+      clauses.push(`a.appointment_date = $${params.length}`);
+    }
+
+    const where = clauses.length ? `WHERE ${clauses.join(" AND ")}` : "";
+    const [appointments] = await db.execute(
+      `SELECT a.appointment_id, a.patient_name, a.patient_phone, a.doctor_id,
+              TO_CHAR(a.appointment_date, 'YYYY-MM-DD') AS appointment_date,
+              a.appointment_time, a.reason, a.status,
+              a.created_at, d.name AS doctor_name
+       FROM appointments a
+       LEFT JOIN doctors d ON d.doctor_id = a.doctor_id
+       ${where}
+       ORDER BY a.appointment_date ASC, a.appointment_time ASC, a.appointment_id DESC`,
+      params
+    );
+
+    res.json(appointments);
+  } catch (err) {
+    console.error("List appointments error:", err);
+    res.status(500).json({ message: "Unable to load appointments." });
+  }
+});
+
+app.put("/appointments/:appointment_id", verifyToken, requireRole("admin", "doctor"), async (req, res) => {
+  try {
+    const appointmentId = Number(req.params.appointment_id);
+    const allowedStatuses = new Set(["Scheduled", "Completed", "Cancelled", "No-show"]);
+    const { status } = req.body;
+
+    if (!Number.isInteger(appointmentId) || appointmentId <= 0 || !allowedStatuses.has(status)) {
+      return res.status(400).json({ message: "Provide a valid appointment ID and status." });
+    }
+
+    const [updated] = await db.execute(
+      `UPDATE appointments SET status = $1
+       WHERE appointment_id = $2
+       RETURNING appointment_id, status`,
+      [status, appointmentId]
+    );
+
+    if (!updated.length) {
+      return res.status(404).json({ message: "Appointment not found." });
+    }
+
+    res.json(updated[0]);
+  } catch (err) {
+    console.error("Update appointment error:", err);
+    res.status(500).json({ message: "Unable to update appointment." });
+  }
+});
+
+app.delete("/appointments/:appointment_id", verifyToken, requireRole("admin", "receptionist"), async (req, res) => {
+  try {
+    const appointmentId = Number(req.params.appointment_id);
+    if (!Number.isInteger(appointmentId) || appointmentId <= 0) {
+      return res.status(400).json({ message: "Provide a valid appointment ID." });
+    }
+
+    const [deleted] = await db.execute(
+      "DELETE FROM appointments WHERE appointment_id = $1 RETURNING appointment_id",
+      [appointmentId]
+    );
+
+    if (!deleted.length) {
+      return res.status(404).json({ message: "Appointment not found." });
+    }
+
+    res.json({ message: "Appointment removed." });
+  } catch (err) {
+    console.error("Delete appointment error:", err);
+    res.status(500).json({ message: "Unable to remove appointment." });
+  }
+});
+
 
 // =====================================================
 // DATA ROUTES
