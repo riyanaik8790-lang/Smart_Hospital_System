@@ -58,7 +58,13 @@ app.post("/api/auth/login", async (req, res) => {
 // =====================================================
 app.post("/api/auth/register", async (req, res) => {
   try {
-    const { name, email, password, role } = req.body;
+    const { name, email, password } = req.body;
+    const role = String(req.body.role || "").trim().toLowerCase();
+    const allowedRoles = new Set(["admin", "doctor", "nurse", "receptionist"]);
+
+    if (!name?.trim() || !email?.trim() || !allowedRoles.has(role)) {
+      return res.status(400).json({ message: "Please provide a name, email, and valid staff role." });
+    }
 
     const hasValidPassword =
       typeof password === "string" &&
@@ -84,7 +90,7 @@ app.post("/api/auth/register", async (req, res) => {
     const hashedPassword = await bcrypt.hash(password, 10);
     const [insertResult] = await db.execute(
       "INSERT INTO users (name, email, password, role) VALUES (?, ?, ?, ?)",
-      [name, email, hashedPassword, role]
+      [name.trim(), email.trim().toLowerCase(), hashedPassword, role]
     );
 
     const token = jwt.sign(

@@ -19,6 +19,13 @@ async function execute(sql, params = []) {
     ? `${postgresSql.trim().replace(/;$/, "")} RETURNING user_id AS "insertId"`
     : postgresSql;
   const result = await pool.query(query, params);
+
+  // Keep the small mysql2-style API expected by server.js.  SELECT queries
+  // return rows, while user registration receives an object with insertId.
+  if (needsUserInsertId) {
+    return [{ insertId: result.rows[0].insertId }];
+  }
+
   return [result.rows];
 }
 
