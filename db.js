@@ -12,7 +12,13 @@ function convertPlaceholders(sql) {
 
 async function execute(sql, params = []) {
   const postgresSql = convertPlaceholders(sql);
-  const result = await pool.query(postgresSql, params);
+  const needsUserInsertId =
+    /^\s*INSERT\s+INTO\s+users\b/i.test(postgresSql) &&
+    !/\bRETURNING\b/i.test(postgresSql);
+  const query = needsUserInsertId
+    ? `${postgresSql.trim().replace(/;$/, "")} RETURNING user_id AS "insertId"`
+    : postgresSql;
+  const result = await pool.query(query, params);
   return [result.rows];
 }
 
