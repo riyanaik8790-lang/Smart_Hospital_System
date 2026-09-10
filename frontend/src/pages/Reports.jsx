@@ -186,7 +186,7 @@ const Reports = () => {
             color: "#111827"
           }}
         >
-          📈 Weekly Hospital Trends
+          Weekly Hospital Trends
         </h3>
 
         <ResponsiveContainer
