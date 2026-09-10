@@ -1,12 +1,13 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { Activity } from 'lucide-react';
+import { Activity, Eye, EyeOff } from 'lucide-react';
 
 const RegisterPage = () => {
     const navigate = useNavigate();
     const [name, setName] = useState('');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
+    const [showPassword, setShowPassword] = useState(false);
     const [role, setRole] = useState('Doctor');
     const [error, setError] = useState('');
 
@@ -32,7 +33,7 @@ const RegisterPage = () => {
             } else {
                 setError(data.message || 'Registration failed');
             }
-        } catch (err) {
+        } catch {
             setError('Server connection error. Please try again.');
         }
     };
@@ -95,14 +96,35 @@ const RegisterPage = () => {
                     </div>
                     <div className="input-group">
                         <label className="input-label">Password</label>
-                        <input
-                            type="password"
-                            className="form-control"
-                            placeholder="Create a strong password"
-                            value={password}
-                            onChange={(e) => setPassword(e.target.value)}
-                            required
-                        />
+                        <div style={{ position: 'relative' }}>
+                            <input
+                                type={showPassword ? 'text' : 'password'}
+                                className="form-control"
+                                placeholder="Create a strong password"
+                                value={password}
+                                onChange={(e) => setPassword(e.target.value)}
+                                style={{ paddingRight: '46px' }}
+                                required
+                            />
+                            <button
+                                type="button"
+                                onClick={() => setShowPassword((visible) => !visible)}
+                                aria-label={showPassword ? 'Hide password' : 'Show password'}
+                                title={showPassword ? 'Hide password' : 'Show password'}
+                                style={{
+                                    position: 'absolute',
+                                    right: '10px',
+                                    top: '50%',
+                                    transform: 'translateY(-50%)',
+                                    display: 'flex',
+                                    padding: '4px',
+                                    color: 'var(--text-gray)',
+                                    background: 'transparent'
+                                }}
+                            >
+                                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                            </button>
+                        </div>
                     </div>
                     <button type="submit" className="btn btn-primary btn-block" style={{ marginTop: '20px' }}>
                         Create Account
