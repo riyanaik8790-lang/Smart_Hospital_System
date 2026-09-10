@@ -3,6 +3,8 @@ const jwt = require("jsonwebtoken");
 const SECRET_KEY = "hospital_secret_key";
 
 const db = require("./db");
+const verifyToken = require("./middleware/verifyToken");
+const { requireRole } = require("./middleware/roleMiddleware");
 const express = require("express");
 const cors = require("cors");
 const path = require("path");
@@ -305,7 +307,7 @@ app.post("/emergency-admit", async (req, res) => {
 // DISCHARGE
 // =====================================================
 
-app.put("/discharge/:id", async (req, res) => {
+app.put("/discharge/:id", verifyToken, requireRole("admin", "doctor"), async (req, res) => {
   try {
     const patientId = req.params.id;
     console.log(`Discharge attempt for patient ID: ${patientId}`);
