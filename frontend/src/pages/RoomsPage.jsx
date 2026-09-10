@@ -8,12 +8,16 @@ import {
 } from 'lucide-react';
 import { authFetch } from '../api/authFetch';
 
+const ROOM_STATUSES = ['All', 'Available', 'Occupied', 'Cleaning'];
+
 const RoomsPage = () => {
     const [rooms, setRooms] = useState([]);
 
     // NEW STATES
+    const [searchInput, setSearchInput] = useState('');
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedType, setSelectedType] = useState('All Types');
+    const [selectedStatus, setSelectedStatus] = useState('All');
 
     const fetchRooms = async () => {
         try {
@@ -39,6 +43,11 @@ const RoomsPage = () => {
         return () => clearInterval(interval);
     }, []);
 
+    useEffect(() => {
+        const timeout = window.setTimeout(() => setSearchTerm(searchInput.trim()), 250);
+        return () => window.clearTimeout(timeout);
+    }, [searchInput]);
+
     // FILTERED ROOMS
     const filteredRooms = rooms.filter((room) => {
         const matchesQuery = (query) =>
@@ -57,7 +66,10 @@ const RoomsPage = () => {
                 : room.type?.toLowerCase() ===
                   selectedType.toLowerCase();
 
-        return matchesSearch && matchesType;
+        const matchesStatus = selectedStatus === 'All' ||
+            room.status?.toLowerCase() === selectedStatus.toLowerCase();
+
+        return matchesSearch && matchesType && matchesStatus;
     });
 
     // STATS
@@ -190,9 +202,9 @@ const RoomsPage = () => {
                             type="text"
                             placeholder="Search by room number or type..."
                             className="form-control"
-                            value={searchTerm}
+                            value={searchInput}
                             onChange={(e) =>
-                                setSearchTerm(
+                                setSearchInput(
                                     e.target.value
                                 )
                             }
@@ -237,6 +249,25 @@ const RoomsPage = () => {
                         <Filter size={18} />
                         {filteredRooms.length} Results
                     </button>
+                </div>
+
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', padding: '0 16px 16px' }}>
+                    {ROOM_STATUSES.map((status) => (
+                        <button
+                            key={status}
+                            type="button"
+                            onClick={() => setSelectedStatus(status)}
+                            style={{
+                                padding: '5px 12px', borderRadius: '20px', border: '1px solid',
+                                borderColor: selectedStatus === status ? 'var(--primary)' : 'var(--border)',
+                                background: selectedStatus === status ? 'var(--primary)' : 'white',
+                                color: selectedStatus === status ? 'white' : 'var(--text-gray)',
+                                cursor: 'pointer', fontSize: '12px', transition: '0.2s'
+                            }}
+                        >
+                            {status}
+                        </button>
+                    ))}
                 </div>
 
                 {/* TABLE */}
@@ -333,9 +364,7 @@ const RoomsPage = () => {
                                                 'var(--text-gray)'
                                         }}
                                     >
-                                        No rooms found
-                                        matching your
-                                        search/filter.
+                                        No results found.
                                     </td>
                                 </tr>
                             )}

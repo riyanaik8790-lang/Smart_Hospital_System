@@ -7,10 +7,13 @@ const DEPARTMENTS = [
     'General', 'Cardiology', 'Neurology', 'Orthopedic', 'Emergency'
 
 ];
+const PATIENT_STATUSES = ['All', 'Admitted', 'Discharged', 'OPD'];
 
 const PatientsPage = () => {
     const [patients, setPatients] = useState([]);
+    const [searchInput, setSearchInput] = useState('');
     const [searchTerm, setSearchTerm] = useState('');
+    const [selectedStatus, setSelectedStatus] = useState('All');
     const [formData, setFormData] = useState({
         name: '', age: '', department: 'General', heartRate: ''
     });
@@ -39,6 +42,11 @@ const PatientsPage = () => {
         return () => clearInterval(interval);
     }, []);
 
+    useEffect(() => {
+        const timeout = window.setTimeout(() => setSearchTerm(searchInput.trim()), 250);
+        return () => window.clearTimeout(timeout);
+    }, [searchInput]);
+
     const calculatePriority = (hr, dept) => {
         const rate = parseInt(hr);
         if (!hr || isNaN(rate)) return { level: 3, label: 'Low', class: 'badge-low', color: 'var(--success)' };
@@ -57,9 +65,16 @@ const PatientsPage = () => {
     };
 
     const currentPriority = calculatePriority(formData.heartRate, formData.department);
-    const filteredPatients = patients.filter((patient) =>
-        !searchTerm || patient.name?.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    const filteredPatients = patients.filter((patient) => {
+        const query = searchTerm.toLowerCase();
+        const matchesSearch = !query ||
+            patient.name?.toLowerCase().includes(query) ||
+            String(patient.patient_id || '').includes(query) ||
+            String(patient.phone || '').includes(query);
+        const matchesStatus = selectedStatus === 'All' ||
+            patient.status?.toLowerCase() === selectedStatus.toLowerCase();
+        return matchesSearch && matchesStatus;
+    });
 
     const handleInputChange = (e) => {
         const { name, value } = e.target;
@@ -172,17 +187,41 @@ const PatientsPage = () => {
                     <h1 className="page-title">Patient Management</h1>
                     <p className="page-subtitle">Auto-triage and manage hospital patients</p>
                 </div>
-                <div style={{ position: 'relative', minWidth: '240px' }}>
-                    <Search size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-light)' }} />
-                    <input
-                        type="search"
-                        className="form-control"
-                        placeholder="Search patients..."
-                        value={searchTerm}
-                        onChange={(event) => setSearchTerm(event.target.value)}
-                        style={{ paddingLeft: '36px' }}
-                    />
+            </div>
+
+            <div className="card mb-6" style={{ marginBottom: '24px' }}>
+                <div style={{ display: 'flex', gap: '12px', padding: '16px', flexWrap: 'wrap', alignItems: 'center' }}>
+                    <div style={{ position: 'relative', flex: 1, minWidth: '220px' }}>
+                        <Search size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-light)' }} />
+                        <input
+                            type="search"
+                            placeholder="Search by name, ID, or phone..."
+                            className="form-control"
+                            value={searchInput}
+                            onChange={(event) => setSearchInput(event.target.value)}
+                            style={{ paddingLeft: '36px', width: '100%' }}
+                        />
+                    </div>
                 </div>
+            </div>
+
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '20px' }}>
+                {PATIENT_STATUSES.map((status) => (
+                    <button
+                        key={status}
+                        type="button"
+                        onClick={() => setSelectedStatus(status)}
+                        style={{
+                            padding: '5px 12px', borderRadius: '20px', border: '1px solid',
+                            borderColor: selectedStatus === status ? 'var(--primary)' : 'var(--border)',
+                            background: selectedStatus === status ? 'var(--primary)' : 'white',
+                            color: selectedStatus === status ? 'white' : 'var(--text-gray)',
+                            cursor: 'pointer', fontSize: '12px', transition: '0.2s'
+                        }}
+                    >
+                        {status}
+                    </button>
+                ))}
             </div>
 
             {notification && (
@@ -313,7 +352,7 @@ const PatientsPage = () => {
                                     </td>
                                 </tr>
                             )) : (
-                                <tr><td colSpan="7" className="text-center" style={{ padding: '32px', color: 'var(--text-gray)' }}>No patients found matching your search.</td></tr>
+                                <tr><td colSpan="7" className="text-center" style={{ padding: '32px', color: 'var(--text-gray)' }}>No results found.</td></tr>
                             )}
                         </tbody>
                     </table>

@@ -9,6 +9,7 @@ const EMPTY_FORM = {
   appointment_time: '',
   reason: ''
 };
+const APPOINTMENT_STATUSES = ['All', 'Upcoming', 'Completed', 'Cancelled'];
 
 const authHeaders = () => ({
   'Content-Type': 'application/json',
@@ -23,7 +24,9 @@ const statusClass = (status) => {
 
 const AppointmentsPage = () => {
   const [appointments, setAppointments] = useState([]);
+  const [searchInput, setSearchInput] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
+  const [selectedStatus, setSelectedStatus] = useState('All');
   const [doctors, setDoctors] = useState([]);
   const [formData, setFormData] = useState(EMPTY_FORM);
   const [notification, setNotification] = useState(null);
@@ -34,8 +37,11 @@ const AppointmentsPage = () => {
   const canUpdate = ['admin', 'doctor'].includes(role);
   const filteredAppointments = appointments.filter((appointment) => {
     const query = searchTerm.toLowerCase();
-    return !query || appointment.patient_name?.toLowerCase().includes(query) ||
+    const matchesSearch = !query || appointment.patient_name?.toLowerCase().includes(query) ||
       appointment.doctor_name?.toLowerCase().includes(query);
+    const matchesStatus = selectedStatus === 'All' ||
+      (selectedStatus === 'Upcoming' ? appointment.status === 'Scheduled' : appointment.status === selectedStatus);
+    return matchesSearch && matchesStatus;
   });
   const phoneError = formData.patient_phone && !/^\d{10}$/.test(formData.patient_phone)
     ? 'Phone number must be 10 digits'
@@ -75,6 +81,11 @@ const AppointmentsPage = () => {
     const interval = window.setInterval(fetchAppointments, 5000);
     return () => window.clearInterval(interval);
   }, [fetchAppointments, fetchDoctors]);
+
+  useEffect(() => {
+    const timeout = window.setTimeout(() => setSearchTerm(searchInput.trim()), 250);
+    return () => window.clearTimeout(timeout);
+  }, [searchInput]);
 
   const handleChange = (event) => {
     const { name, value } = event.target;
@@ -148,17 +159,41 @@ const AppointmentsPage = () => {
           <h1 className="page-title">Appointments</h1>
           <p className="page-subtitle">Book and manage scheduled hospital visits</p>
         </div>
-        <div style={{ position: 'relative', minWidth: '240px' }}>
-          <Search size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-light)' }} />
-          <input
-            type="search"
-            className="form-control"
-            placeholder="Search appointments..."
-            value={searchTerm}
-            onChange={(event) => setSearchTerm(event.target.value)}
-            style={{ paddingLeft: '36px' }}
-          />
+      </div>
+
+      <div className="card mb-6" style={{ marginBottom: '24px' }}>
+        <div style={{ display: 'flex', gap: '12px', padding: '16px', flexWrap: 'wrap', alignItems: 'center' }}>
+          <div style={{ position: 'relative', flex: 1, minWidth: '220px' }}>
+            <Search size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-light)' }} />
+            <input
+              type="search"
+              placeholder="Search by patient or doctor..."
+              className="form-control"
+              value={searchInput}
+              onChange={(event) => setSearchInput(event.target.value)}
+              style={{ paddingLeft: '36px', width: '100%' }}
+            />
+          </div>
         </div>
+      </div>
+
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '20px' }}>
+        {APPOINTMENT_STATUSES.map((status) => (
+          <button
+            key={status}
+            type="button"
+            onClick={() => setSelectedStatus(status)}
+            style={{
+              padding: '5px 12px', borderRadius: '20px', border: '1px solid',
+              borderColor: selectedStatus === status ? 'var(--primary)' : 'var(--border)',
+              background: selectedStatus === status ? 'var(--primary)' : 'white',
+              color: selectedStatus === status ? 'white' : 'var(--text-gray)',
+              cursor: 'pointer', fontSize: '12px', transition: '0.2s'
+            }}
+          >
+            {status}
+          </button>
+        ))}
       </div>
 
       {notification && (
@@ -265,7 +300,7 @@ const AppointmentsPage = () => {
                   </td>
                 </tr>
               )) : (
-                <tr><td colSpan="8" className="text-center" style={{ padding: '32px', color: 'var(--text-gray)' }}>No appointments found matching your search.</td></tr>
+                <tr><td colSpan="8" className="text-center" style={{ padding: '32px', color: 'var(--text-gray)' }}>No results found.</td></tr>
               )}
             </tbody>
           </table>
