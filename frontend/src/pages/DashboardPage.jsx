@@ -1,45 +1,56 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { Users, UserCheck, AlertTriangle, Stethoscope, Bed, Activity } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
+const sampleStats = {
+  Today: {
+    totalPatients: 48,
+    admittedPatients: 19,
+    criticalPatients: 4,
+    availableDoctors: 35,
+    availableRooms: 50,
+    emergencyAvailable: 4
+  },
+  'This Week': {
+    totalPatients: 286,
+    admittedPatients: 74,
+    criticalPatients: 12,
+    availableDoctors: 31,
+    availableRooms: 38,
+    emergencyAvailable: 2
+  },
+  'This Month': {
+    totalPatients: 1_142,
+    admittedPatients: 218,
+    criticalPatients: 27,
+    availableDoctors: 28,
+    availableRooms: 24,
+    emergencyAvailable: 1
+  }
+};
+
 const DashboardPage = () => {
   const navigate = useNavigate();
-  const [stats, setStats] = useState({
-    totalPatients: 0,
-    admittedPatients: 0,
-    criticalPatients: 0,
-    availableDoctors: 0,
-    availableRooms: 0,
-    emergencyAvailable: 0
-  });
-
-  useEffect(() => {
-    const fetchDashboardData = async () => {
-      try {
-        const response = await fetch('/dashboard');
-        if (response.ok) setStats(await response.json());
-      } catch (err) {
-        console.error('Error fetching stats:', err);
-      }
-    };
-
-    fetchDashboardData();
-    const interval = setInterval(fetchDashboardData, 3000);
-    return () => clearInterval(interval);
-  }, []);
+  const [period, setPeriod] = useState('Today');
+  const stats = sampleStats[period];
 
   return (
     <>
       <div className="page-header">
         <div>
           <h1 className="page-title">Dashboard Overview</h1>
-          <p className="page-subtitle">Real-time update on hospital operations</p>
+          <p className="page-subtitle">Sample hospital activity for the selected period</p>
         </div>
         <div style={{ display: 'flex', gap: '12px' }}>
-          <select className="form-control" style={{ width: 'auto', background: 'var(--surface)' }}>
-            <option>Today</option>
-            <option>This Week</option>
-            <option>This Month</option>
+          <select
+            className="form-control"
+            value={period}
+            onChange={(event) => setPeriod(event.target.value)}
+            style={{ width: 'auto', background: 'var(--surface)' }}
+          >
+            <option value="Today">Today</option>
+            <option value="This Week">This Week</option>
+            <option value="This Month">This Month</option>
           </select>
           <button className="btn btn-primary" onClick={() => navigate('/app/reports')}>
             Generate Report
