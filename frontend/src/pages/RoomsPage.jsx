@@ -6,6 +6,7 @@ import {
     CheckCircle,
     Clock
 } from 'lucide-react';
+import { authFetch } from '../api/authFetch';
 
 const RoomsPage = () => {
     const [rooms, setRooms] = useState([]);
@@ -16,7 +17,7 @@ const RoomsPage = () => {
 
     const fetchRooms = async () => {
         try {
-            const res = await fetch('/rooms');
+            const res = await authFetch('/rooms');
 
             if (res.ok) {
                 const data = await res.json();

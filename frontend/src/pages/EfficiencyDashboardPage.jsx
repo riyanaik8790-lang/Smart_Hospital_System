@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { TrendingUp, Users, Activity, HeartPulse, BedDouble, AlertCircle, RefreshCw } from 'lucide-react';
+import { authFetch } from '../api/authFetch';
 
 // Reusable Circular Progress Component
 const CircularProgress = ({ value, label, size = 120, strokeWidth = 10, colorClass = "primary" }) => {
@@ -72,7 +73,7 @@ const EfficiencyDashboardPage = () => {
 
     const fetchEfficiencyData = async () => {
         try {
-            const res = await fetch('/api/efficiency');
+            const res = await authFetch('/api/efficiency');
             if (res.ok) {
                 const data = await res.json();
                 setStats(data);

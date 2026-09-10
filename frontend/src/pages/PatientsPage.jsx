@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 
 import { Plus, AlertTriangle, LogOut, CheckCircle, XCircle } from 'lucide-react';
+import { authFetch } from '../api/authFetch';
 
 const DEPARTMENTS = [
     'General', 'Cardiology', 'Neurology', 'Orthopedic', 'Emergency'
@@ -21,7 +22,7 @@ const PatientsPage = () => {
 
     const fetchPatients = async () => {
         try {
-            const res = await fetch('/patients');
+            const res = await authFetch('/patients');
             if (res.ok) {
                 const data = await res.json();
                 if (Array.isArray(data)) setPatients(data);
@@ -77,7 +78,7 @@ const PatientsPage = () => {
 
         setLoading(true);
         try {
-            const res = await fetch('/add-patient', {
+            const res = await authFetch('/add-patient', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -103,7 +104,7 @@ const PatientsPage = () => {
     const handleEmergencyAdmit = async () => {
         setLoading(true);
         try {
-            const res = await fetch('/emergency-admit', {
+            const res = await authFetch('/emergency-admit', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -144,7 +145,7 @@ const PatientsPage = () => {
         setDischargingId(id);
         setConfirmDischargeId(null);
         try {
-            const res = await fetch(`/discharge/${id}`, { method: 'PUT' });
+            const res = await authFetch(`/discharge/${id}`, { method: 'PUT' });
             const data = await res.text();
             if (res.ok) {
                 showNotification(data, 'success');

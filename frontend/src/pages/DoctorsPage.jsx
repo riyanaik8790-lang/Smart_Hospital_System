@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Search, Phone, Mail, Stethoscope, Star, ChevronDown, ChevronUp } from 'lucide-react';
+import { authFetch } from '../api/authFetch';
 
 const SPECIALTIES = [
     'All specialities',
@@ -16,7 +17,7 @@ const DoctorsPage = () => {
 
     const fetchDoctors = async () => {
         try {
-            const res = await fetch('/doctors');
+            const res = await authFetch('/doctors');
             if (res.ok) {
                 const data = await res.json();
                 if (Array.isArray(data)) setDoctorsList(data);

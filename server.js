@@ -114,7 +114,7 @@ app.post("/api/auth/register", async (req, res) => {
 // =====================================================
 // DASHBOARD
 // =====================================================
-app.get("/dashboard", async (req, res) => {
+app.get("/dashboard", verifyToken, async (req, res) => {
   try {
     const stats = {};
     const queries = {
@@ -134,7 +134,7 @@ app.get("/dashboard", async (req, res) => {
     const results = await Promise.all(keys.map(key => db.execute(queries[key])));
 
     results.forEach((result, index) => {
-      stats[keys[index]] = result[0][0].count;
+      stats[keys[index]] = Number(result[0][0].count) || 0;
     });
 
     res.json(stats);
@@ -147,7 +147,7 @@ app.get("/dashboard", async (req, res) => {
 // =====================================================
 // EFFICIENCY DASHBOARD
 // =====================================================
-app.get("/api/efficiency", verifyToken, requireRole("admin"), async (req, res) => {
+app.get("/api/efficiency", verifyToken, async (req, res) => {
   try {
     const stats = {};
     const queries = {
@@ -165,7 +165,8 @@ app.get("/api/efficiency", verifyToken, requireRole("admin"), async (req, res) =
     const results = await Promise.all(keys.map(key => db.execute(queries[key])));
 
     results.forEach((result, index) => {
-      stats[keys[index]] = result[0][0].count;
+      // node-postgres returns PostgreSQL COUNT(*) values as strings.
+      stats[keys[index]] = Number(result[0][0].count) || 0;
     });
 
     // Calculate derived rates
@@ -393,7 +394,7 @@ app.post("/appointments", verifyToken, requireRole("admin", "receptionist"), asy
   }
 });
 
-app.get("/appointments", verifyToken, requireRole("admin", "doctor", "nurse", "receptionist"), async (req, res) => {
+app.get("/appointments", verifyToken, async (req, res) => {
   try {
     const clauses = [];
     const params = [];
@@ -491,7 +492,7 @@ app.delete("/appointments/:appointment_id", verifyToken, requireRole("admin", "r
 // DATA ROUTES
 // =====================================================
 
-app.get("/patients", verifyToken, requireRole("admin", "doctor", "nurse", "receptionist"), async (req, res) => {
+app.get("/patients", verifyToken, async (req, res) => {
   try {
     const sql = `
       SELECT 
@@ -518,7 +519,7 @@ app.get("/patients", verifyToken, requireRole("admin", "doctor", "nurse", "recep
 // REPLACE YOUR OLD /doctors ROUTE WITH THIS
 // ==========================
 
-app.get("/doctors", verifyToken, requireRole("admin", "doctor", "nurse", "receptionist"), async (req, res) => {
+app.get("/doctors", verifyToken, async (req, res) => {
   try {
     const [result] = await db.execute(`
       SELECT 
@@ -545,7 +546,7 @@ app.get("/doctors", verifyToken, requireRole("admin", "doctor", "nurse", "recept
   }
 });
 
-app.get("/rooms", verifyToken, requireRole("admin", "doctor", "nurse", "receptionist"), async (req, res) => {
+app.get("/rooms", verifyToken, async (req, res) => {
   try {
     const [result] = await db.execute("SELECT * FROM rooms");
     res.json(result);

@@ -10,13 +10,14 @@ import {
   Legend
 } from "recharts";
 import { Download } from "lucide-react";
+import { authFetch } from '../api/authFetch';
 
 const Reports = () => {
   const [data, setData] = useState([]);
   const [stats, setStats] = useState({});
 
   useEffect(() => {
-    fetch("/api/efficiency")
+    authFetch("/api/efficiency")
       .then((res) => res.json())
       .then((res) => {
         setStats(res);

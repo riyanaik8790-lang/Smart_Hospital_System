@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { AlertTriangle, Clock, Activity, Heart, ArrowRight } from 'lucide-react';
+import { authFetch } from '../api/authFetch';
 
 const PriorityQueuePage = () => {
     const [patients, setPatients] = useState([]);
 
     const fetchPatients = async () => {
         try {
-            const res = await fetch('/patients');
+            const res = await authFetch('/patients');
             if (res.ok) {
                 const data = await res.json();
                 if (Array.isArray(data)) {

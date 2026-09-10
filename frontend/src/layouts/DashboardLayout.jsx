@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
+import { authFetch } from '../api/authFetch';
 import {
     LayoutDashboard,
     Users,
@@ -50,7 +51,7 @@ const DashboardLayout = () => {
     // ==========================
     const fetchNotifications = async () => {
         try {
-            const res = await fetch('/patients');
+            const res = await authFetch('/patients');
             const data = await res.json();
 
             if (data && data.length > 0) {
