@@ -20,6 +20,7 @@ import {
 
 const DashboardLayout = () => {
     const [collapsed, setCollapsed] = useState(false);
+    const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
     const [showNotif, setShowNotif] = useState(false);
     const [showProfile, setShowProfile] = useState(false);
@@ -53,6 +54,19 @@ const DashboardLayout = () => {
 
     const notifRef = useRef();
     const profileRef = useRef();
+
+    // A navigation selection should never leave the mobile drawer covering its page.
+    useEffect(() => {
+        setMobileMenuOpen(false);
+    }, [location.pathname]);
+
+    useEffect(() => {
+        const handleEscape = (event) => {
+            if (event.key === 'Escape') setMobileMenuOpen(false);
+        };
+        document.addEventListener('keydown', handleEscape);
+        return () => document.removeEventListener('keydown', handleEscape);
+    }, []);
 
     // ==========================
     // FETCH NOTIFICATIONS
@@ -151,7 +165,15 @@ const DashboardLayout = () => {
         <div className="app-container">
 
             {/* SIDEBAR */}
-            <div className={`sidebar ${collapsed ? 'collapsed' : ''}`}>
+            {mobileMenuOpen && (
+                <button
+                    className="sidebar-backdrop"
+                    type="button"
+                    aria-label="Close navigation menu"
+                    onClick={() => setMobileMenuOpen(false)}
+                />
+            )}
+            <div className={`sidebar ${collapsed ? 'collapsed' : ''} ${mobileMenuOpen ? 'mobile-open' : ''}`}>
                 <div className="sidebar-header">
                     <div
                         style={{
@@ -167,7 +189,7 @@ const DashboardLayout = () => {
                     </div>
                 </div>
 
-                <div className="nav-menu">
+                <div className="nav-menu" onClick={() => setMobileMenuOpen(false)}>
                     {canView('admin') && <NavLink
                         to="/app/dashboard"
                         className={({ isActive }) =>
@@ -250,7 +272,10 @@ const DashboardLayout = () => {
 
                     {canView('admin') && <div
                         className="nav-item"
-                        onClick={handleReport}
+                            onClick={() => {
+                                handleReport();
+                                setMobileMenuOpen(false);
+                            }}
                         style={{ cursor: 'pointer' }}
                     >
                         <FileText />
@@ -266,7 +291,10 @@ const DashboardLayout = () => {
                 >
                     <div
                         className="nav-item"
-                        onClick={handleLogout}
+                        onClick={() => {
+                            handleLogout();
+                            setMobileMenuOpen(false);
+                        }}
                         style={{ cursor: 'pointer', color: 'red' }}
                     >
                         <LogOut />
@@ -283,6 +311,14 @@ const DashboardLayout = () => {
 
                     {/* LEFT */}
                     <div className="topbar-left">
+                        <button
+                            className="toggle-btn mobile-menu-toggle"
+                            onClick={() => setMobileMenuOpen(true)}
+                            aria-label="Open navigation menu"
+                            aria-expanded={mobileMenuOpen}
+                        >
+                            <Menu size={20} />
+                        </button>
                         {!hideTopbarTools && <>
                             <button
                                 className="toggle-btn"

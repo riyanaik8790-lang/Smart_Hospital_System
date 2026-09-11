@@ -173,7 +173,7 @@ const RoomsPage = () => {
             <div className="card">
                 {/* SEARCH + FILTER */}
                 <div
-                    className="card-header"
+                    className="card-header filter-bar"
                     style={{
                         display: 'flex',
                         gap: '16px',
@@ -183,6 +183,7 @@ const RoomsPage = () => {
                 >
                     {/* SEARCH */}
                     <div
+                        className="filter-search"
                         style={{
                             position: 'relative',
                             flex: 1
@@ -218,7 +219,7 @@ const RoomsPage = () => {
 
                     {/* TYPE FILTER */}
                     <select
-                        className="form-control"
+                        className="form-control filter-select"
                         style={{ width: '200px' }}
                         value={selectedType}
                         onChange={(e) =>
@@ -252,7 +253,7 @@ const RoomsPage = () => {
                     </button>
                 </div>
 
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', padding: '0 16px 16px' }}>
+                <div className="filter-tabs" style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', padding: '0 16px 16px' }}>
                     {ROOM_STATUSES.map((status) => (
                         <button
                             key={status}

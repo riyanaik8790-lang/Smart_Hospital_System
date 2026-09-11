@@ -101,9 +101,10 @@ const Reports = () => {
   };
 
   return (
-    <div style={{ padding: "20px" }}>
+    <div className="reports-page" style={{ padding: "20px" }}>
       {/* HEADER */}
       <div
+        className="reports-header"
         style={{
           display: "flex",
           justifyContent: "space-between",
@@ -136,6 +137,7 @@ const Reports = () => {
 
       {/* KPI CARDS */}
       <div
+        className="reports-stats"
         style={{
           display: "grid",
           gridTemplateColumns:
@@ -171,6 +173,7 @@ const Reports = () => {
 
       {/* TREND CHART */}
       <div
+        className="reports-chart"
         style={{
           background: "#ffffff",
           padding: "24px",

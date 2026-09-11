@@ -80,8 +80,8 @@ const DoctorsPage = () => {
 
             {/* SEARCH & FILTER BAR */}
             <div className="card mb-6" style={{ marginBottom: '24px' }}>
-                <div style={{ display: 'flex', gap: '12px', padding: '16px', flexWrap: 'wrap', alignItems: 'center' }}>
-                    <div style={{ position: 'relative', flex: 1, minWidth: '220px' }}>
+                <div className="filter-bar" style={{ display: 'flex', gap: '12px', padding: '16px', flexWrap: 'wrap', alignItems: 'center' }}>
+                    <div className="filter-search" style={{ position: 'relative', flex: 1, minWidth: '220px' }}>
                         <Search size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-light)' }} />
                         <input
                             type="text"
@@ -94,7 +94,7 @@ const DoctorsPage = () => {
                     </div>
 
                     <select
-                        className="form-control"
+                        className="form-control filter-select"
                         style={{ width: '200px' }}
                         value={selectedSpecialty}
                         onChange={(e) => setSelectedSpecialty(e.target.value)}
@@ -107,7 +107,7 @@ const DoctorsPage = () => {
             </div>
 
             {/* SPECIALTY CHIPS */}
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '20px' }}>
+            <div className="filter-tabs" style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '20px' }}>
                 {SPECIALTIES.map((s) => (
                     <button
                         key={s}
