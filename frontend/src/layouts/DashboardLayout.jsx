@@ -333,14 +333,6 @@ const DashboardLayout = () => {
                         >
                             <Menu size={20} />
                         </button>
-                        <button
-                            className="toggle-btn desktop-menu-control"
-                            type="button"
-                            onClick={() => setMobileMenuOpen(false)}
-                            aria-label="Navigation sidebar"
-                        >
-                            <Menu size={20} />
-                        </button>
                     </div>
 
                     {/* RIGHT */}

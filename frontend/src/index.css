@@ -889,11 +889,6 @@ button {
     display: inline-flex;
   }
 
-  /* The drawer button replaces the inactive desktop menu control on mobile. */
-  .desktop-menu-control {
-    display: none;
-  }
-
   .sidebar .nav-item {
     min-height: 44px;
   }
