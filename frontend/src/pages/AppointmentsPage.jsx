@@ -11,6 +11,14 @@ const EMPTY_FORM = {
 };
 const APPOINTMENT_STATUSES = ['All', 'Upcoming', 'Completed', 'Cancelled'];
 
+const localToday = () => {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
 const authHeaders = () => ({
   'Content-Type': 'application/json',
   Authorization: `Bearer ${localStorage.getItem('token') || ''}`
@@ -265,7 +273,7 @@ const AppointmentsPage = () => {
                 </div>
                 <div className="input-group">
                   <label>Date *</label>
-                  <input className="form-control" name="appointment_date" value={formData.appointment_date} onChange={handleChange} type="date" required />
+                  <input className="form-control" name="appointment_date" value={formData.appointment_date} onChange={handleChange} type="date" min={localToday()} required />
                 </div>
                 <div className="input-group">
                   <label>Time *</label>

@@ -449,6 +449,21 @@ app.get("/api/reports/efficiency/pdf", verifyToken, requireRole("admin"), async 
 // =====================================================
 // APPOINTMENTS (separate from patient admission)
 // =====================================================
+const serverToday = () => {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  const day = String(now.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+};
+
+const isValidDateOnly = (value) => {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+  const [year, month, day] = value.split("-").map(Number);
+  const date = new Date(year, month - 1, day);
+  return date.getFullYear() === year && date.getMonth() === month - 1 && date.getDate() === day;
+};
+
 app.post("/appointments", verifyToken, requireRole("admin", "receptionist"), async (req, res) => {
   try {
     const { patient_name, patient_phone, doctor_id, appointment_date, appointment_time, reason } = req.body;
@@ -457,6 +472,16 @@ app.post("/appointments", verifyToken, requireRole("admin", "receptionist"), asy
 
     if (!patient_name?.trim() || !appointment_date || !appointment_time?.trim() || !Number.isInteger(parsedDoctorId) || parsedDoctorId <= 0) {
       return res.status(400).json({ message: "Patient name, doctor, date, and time are required." });
+    }
+
+    // Date-only appointment values must be compared in the server's calendar,
+    // not converted to UTC where a timezone offset could shift the day.
+    if (!isValidDateOnly(appointment_date)) {
+      return res.status(400).json({ message: "Appointment date must be a valid date." });
+    }
+
+    if (appointment_date < serverToday()) {
+      return res.status(400).json({ message: "Appointment date cannot be in the past." });
     }
 
     if (normalizedPhone && !/^\d{10}$/.test(normalizedPhone)) {
