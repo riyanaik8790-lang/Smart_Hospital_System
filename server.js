@@ -486,7 +486,7 @@ app.post("/appointments", verifyToken, requireRole("admin", "receptionist"), asy
     if (appointment_date < serverToday()) {
       return res.status(400).json({
         error: "Appointment date cannot be in the past",
-        message: "Appointment date cannot be in the past."
+        message: "Appointment date cannot be in the past"
       });
     }
 
