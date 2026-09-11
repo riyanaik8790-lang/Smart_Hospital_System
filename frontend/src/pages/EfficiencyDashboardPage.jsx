@@ -219,7 +219,7 @@ const EfficiencyDashboardPage = () => {
             )}
 
             {/* Top Level Key Metrics */}
-            <div className="stats-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))' }}>
+            <div className="stats-grid efficiency-summary-grid">
                 <div className="card" style={{ display: 'flex', padding: '24px', alignItems: 'center', justifyContent: 'space-between' }}>
                     <div>
                         <div style={{ fontSize: '14px', color: 'var(--text-gray)', fontWeight: 600, marginBottom: '8px' }}>Bed Occupancy</div>
@@ -267,10 +267,10 @@ const EfficiencyDashboardPage = () => {
             </div>
 
             {/* Detailed Analytics Rows */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
+            <div className="efficiency-details-grid">
 
                 {/* Left Column */}
-                <div className="card" style={{ marginBottom: 0 }}>
+                <div className="card efficiency-card" style={{ marginBottom: 0 }}>
                     <div className="card-header">
                         <div className="card-title" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                             <Activity size={20} color="var(--primary)" />
@@ -304,7 +304,7 @@ const EfficiencyDashboardPage = () => {
                 </div>
 
                 {/* Right Column */}
-                <div className="card" style={{ marginBottom: 0 }}>
+                <div className="card efficiency-card" style={{ marginBottom: 0 }}>
                     <div className="card-header">
                         <div className="card-title" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                             <HeartPulse size={20} color="var(--danger)" />
@@ -313,7 +313,7 @@ const EfficiencyDashboardPage = () => {
                     </div>
                     <div className="card-body">
 
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '16px', padding: '16px', background: 'var(--surface-hover)', borderRadius: '8px', marginBottom: '16px' }}>
+                        <div className="efficiency-health-check" style={{ display: 'flex', alignItems: 'center', gap: '16px', padding: '16px', background: 'var(--surface-hover)', borderRadius: '8px', marginBottom: '16px' }}>
                             <div style={{ padding: '12px', background: stats.criticalLoad > 20 ? 'var(--danger-light)' : 'var(--success-light)', color: stats.criticalLoad > 20 ? 'var(--danger)' : 'var(--success)', borderRadius: '50%' }}>
                                 <AlertCircle size={24} />
                             </div>
@@ -325,7 +325,7 @@ const EfficiencyDashboardPage = () => {
                             </div>
                         </div>
 
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '16px', padding: '16px', background: 'var(--surface-hover)', borderRadius: '8px', marginBottom: '16px' }}>
+                        <div className="efficiency-health-check" style={{ display: 'flex', alignItems: 'center', gap: '16px', padding: '16px', background: 'var(--surface-hover)', borderRadius: '8px', marginBottom: '16px' }}>
                             <div style={{ padding: '12px', background: stats.doctorUtilizationRate > 85 ? 'var(--warning-light)' : 'var(--success-light)', color: stats.doctorUtilizationRate > 85 ? 'var(--warning)' : 'var(--success)', borderRadius: '50%' }}>
                                 <Users size={24} />
                             </div>
@@ -337,7 +337,7 @@ const EfficiencyDashboardPage = () => {
                             </div>
                         </div>
 
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '16px', padding: '16px', background: 'var(--surface-hover)', borderRadius: '8px' }}>
+                        <div className="efficiency-health-check" style={{ display: 'flex', alignItems: 'center', gap: '16px', padding: '16px', background: 'var(--surface-hover)', borderRadius: '8px' }}>
                             <div style={{ padding: '12px', background: stats.bedOccupancyRate > 90 ? 'var(--danger-light)' : 'var(--success-light)', color: stats.bedOccupancyRate > 90 ? 'var(--danger)' : 'var(--success)', borderRadius: '50%' }}>
                                 <BedDouble size={24} />
                             </div>

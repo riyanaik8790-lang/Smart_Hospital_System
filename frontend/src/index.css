@@ -176,6 +176,7 @@ button {
 
 .main-content {
   flex: 1;
+  min-width: 0;
   display: flex;
   flex-direction: column;
   height: 100vh;
@@ -185,6 +186,8 @@ button {
 
 .page-content {
   flex: 1;
+  min-width: 0;
+  max-width: 100%;
   overflow-y: auto;
   padding: 32px;
   background: var(--bg);
@@ -439,6 +442,7 @@ button {
 .dashboard-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  min-width: 0;
   gap: 20px;
   margin-bottom: 30px;
 }
@@ -499,6 +503,8 @@ button {
 
 .section-card,
 .card {
+  min-width: 0;
+  width: 100%;
   background: var(--surface);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-sm);
@@ -527,6 +533,25 @@ button {
 .section-body,
 .card-body {
   padding: 24px;
+}
+
+/* Efficiency Analytics */
+.efficiency-details-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 24px;
+  min-width: 0;
+}
+
+.efficiency-card,
+.efficiency-card * {
+  min-width: 0;
+  overflow-wrap: break-word;
+  word-wrap: break-word;
+}
+
+.efficiency-health-check > div:last-child {
+  min-width: 0;
 }
 
 /* Form Layout */
@@ -818,8 +843,14 @@ button {
 
   .stats-grid,
   .dashboard-grid,
-  .reports-stats {
+  .reports-stats,
+  .efficiency-summary-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  .efficiency-details-grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
   }
 
   .page-header {
@@ -947,7 +978,8 @@ button {
 
   .stats-grid,
   .dashboard-grid,
-  .reports-stats {
+  .reports-stats,
+  .efficiency-summary-grid {
     grid-template-columns: 1fr !important;
     gap: 12px;
     margin-bottom: 20px;
@@ -970,6 +1002,16 @@ button {
   .section-body,
   .card-body {
     padding: 16px;
+  }
+
+  .efficiency-details-grid {
+    gap: 12px;
+  }
+
+  .efficiency-health-check {
+    align-items: flex-start !important;
+    gap: 12px !important;
+    padding: 14px !important;
   }
 
   .section-title,
