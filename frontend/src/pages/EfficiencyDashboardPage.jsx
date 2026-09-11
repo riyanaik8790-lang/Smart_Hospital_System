@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { TrendingUp, Users, Activity, HeartPulse, BedDouble, AlertCircle, RefreshCw } from 'lucide-react';
+import { TrendingUp, Users, Activity, HeartPulse, BedDouble, AlertCircle, RefreshCw, Download, LoaderCircle } from 'lucide-react';
 import { authFetch } from '../api/authFetch';
 
 // Reusable Circular Progress Component
@@ -70,6 +70,13 @@ const EfficiencyDashboardPage = () => {
     });
 
     const [loading, setLoading] = useState(true);
+    const [exporting, setExporting] = useState('');
+    const [notification, setNotification] = useState(null);
+
+    const notify = (message, type = 'success') => {
+        setNotification({ message, type });
+        window.setTimeout(() => setNotification(null), 4000);
+    };
 
     const fetchEfficiencyData = async () => {
         try {
@@ -98,6 +105,88 @@ const EfficiencyDashboardPage = () => {
         return 'success';
     };
 
+    const healthChecks = [
+        {
+            name: 'Emergency Department Status',
+            status: stats.criticalLoad > 20 ? 'High capacity warning' : 'Operating normally',
+            detail: stats.criticalLoad > 20 ? 'Routing new emergencies may be delayed.' : 'Capable of handling new traumas.'
+        },
+        {
+            name: 'Staffing Levels',
+            status: stats.doctorUtilizationRate > 85 ? 'Staffing strain' : 'Adequate staffing',
+            detail: stats.doctorUtilizationRate > 85 ? 'Medical staff are severely strained. Consider calling on-call physicians.' : 'Adequate physician availability for current patient volume.'
+        },
+        {
+            name: 'Bed Availability',
+            status: stats.bedOccupancyRate > 90 ? 'Critical bed shortage' : 'Normal availability',
+            detail: stats.bedOccupancyRate > 90 ? 'Expedite discharges if clinically appropriate.' : 'Normal bed availability across all wards.'
+        }
+    ];
+
+    const reportFilename = (extension) => {
+        const now = new Date();
+        const parts = [now.getFullYear(), String(now.getMonth() + 1).padStart(2, '0'), String(now.getDate()).padStart(2, '0')];
+        const time = [String(now.getHours()).padStart(2, '0'), String(now.getMinutes()).padStart(2, '0')].join('');
+        return `efficiency-report-${parts.join('-')}-${time}.${extension}`;
+    };
+
+    const csvCell = (value) => `"${String(value ?? '').replace(/"/g, '""')}"`;
+
+    const exportCsv = () => {
+        setExporting('csv');
+        try {
+            const rows = [
+                ['Metric Name', 'Value', 'Percentage', 'Detail'],
+                ['Bed Occupancy', `${stats.occupiedRooms}/${stats.totalRooms}`, `${stats.bedOccupancyRate}%`, 'Active beds currently in use'],
+                ['Doctor Utilization', `${stats.busyDoctors}/${stats.totalDoctors}`, `${stats.doctorUtilizationRate}%`, 'Doctors currently busy'],
+                ['Treatment Efficiency', `${stats.dischargedPatients} discharged`, `${stats.treatmentEfficiency}%`, `Out of ${stats.totalPatients} historically`],
+                ['Inpatient Ward Capacity', `${stats.occupiedRooms}/${stats.totalRooms}`, `${stats.bedOccupancyRate}%`, 'Occupied rooms out of total rooms'],
+                ['Medical Staff Bandwidth', `${stats.busyDoctors}/${stats.totalDoctors}`, `${stats.doctorUtilizationRate}%`, 'Busy doctors out of total doctors'],
+                ['Critical Care Load', `${stats.emergencyAdmitted}/${stats.admittedPatients}`, `${stats.criticalLoad}%`, 'Critical emergency patients out of admitted patients'],
+                ...healthChecks.map((check) => [check.name, check.status, '', check.detail]),
+                ['Report Generated', new Date().toLocaleString(), '', 'Smart Hospital Efficiency Analytics']
+            ];
+            const blob = new Blob([rows.map((row) => row.map(csvCell).join(',')).join('\n')], { type: 'text/csv;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = reportFilename('csv');
+            link.click();
+            URL.revokeObjectURL(url);
+            notify('CSV report downloaded.');
+        } catch (error) {
+            console.error('CSV export error:', error);
+            notify('Unable to generate the CSV report.', 'error');
+        } finally {
+            setExporting('');
+        }
+    };
+
+    const exportPdf = async () => {
+        setExporting('pdf');
+        try {
+            const response = await authFetch('/api/reports/efficiency/pdf');
+            if (!response.ok) {
+                const contentType = response.headers.get('content-type') || '';
+                const errorData = contentType.includes('application/json') ? await response.json() : await response.text();
+                throw new Error(typeof errorData === 'object' ? errorData.message : errorData);
+            }
+            const blob = await response.blob();
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = reportFilename('pdf');
+            link.click();
+            URL.revokeObjectURL(url);
+            notify('PDF report downloaded.');
+        } catch (error) {
+            console.error('PDF export error:', error);
+            notify(error.message || 'Unable to generate the PDF report.', 'error');
+        } finally {
+            setExporting('');
+        }
+    };
+
     return (
         <>
             <div className="page-header">
@@ -112,9 +201,22 @@ const EfficiencyDashboardPage = () => {
                     {loading && <RefreshCw size={18} className="text-gray" style={{ animation: 'spin 1s linear infinite' }} />}
                     <span style={{ fontSize: '12px', color: 'var(--text-gray)' }}>Auto-updating (3s)</span>
                     <button className="btn btn-outline" onClick={fetchEfficiencyData}><RefreshCw size={16} /> Refresh</button>
-                    <button className="btn btn-primary">Export Data</button>
+                    <button className="btn btn-outline" onClick={exportCsv} disabled={Boolean(exporting)}>
+                        {exporting === 'csv' ? <LoaderCircle size={16} style={{ animation: 'spin 1s linear infinite' }} /> : <Download size={16} />}
+                        Export CSV
+                    </button>
+                    <button className="btn btn-primary" onClick={exportPdf} disabled={Boolean(exporting)}>
+                        {exporting === 'pdf' ? <LoaderCircle size={16} style={{ animation: 'spin 1s linear infinite' }} /> : <Download size={16} />}
+                        Export PDF
+                    </button>
                 </div>
             </div>
+
+            {notification && (
+                <div className={`alert ${notification.type === 'error' ? 'alert-error' : 'alert-success'}`} role="status">
+                    {notification.message}
+                </div>
+            )}
 
             {/* Top Level Key Metrics */}
             <div className="stats-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))' }}>

@@ -2,6 +2,7 @@ require("dotenv").config();
 
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
+const PDFDocument = require("pdfkit");
 const SECRET_KEY = process.env.JWT_SECRET || "hospital_secret_key";
 
 const db = require("./db");
@@ -157,10 +158,9 @@ app.get("/dashboard", verifyToken, async (req, res) => {
 // =====================================================
 // EFFICIENCY DASHBOARD
 // =====================================================
-app.get("/api/efficiency", verifyToken, async (req, res) => {
-  try {
-    const stats = {};
-    const queries = {
+async function getEfficiencyStats() {
+  const stats = {};
+  const queries = {
       totalDoctors: "SELECT COUNT(*) AS count FROM doctors",
       busyDoctors: "SELECT COUNT(*) AS count FROM doctors WHERE LOWER(status)='busy'",
       totalRooms: "SELECT COUNT(*) AS count FROM rooms",
@@ -169,32 +169,61 @@ app.get("/api/efficiency", verifyToken, async (req, res) => {
       admittedPatients: "SELECT COUNT(*) AS count FROM patients WHERE LOWER(status)='admitted'",
       dischargedPatients: "SELECT COUNT(*) AS count FROM patients WHERE LOWER(status)='discharged'",
       emergencyAdmitted: "SELECT COUNT(*) AS count FROM patients WHERE LOWER(priority_label)='critical' AND LOWER(status)='admitted'"
-    };
+  };
 
-    const keys = Object.keys(queries);
-    const results = await Promise.all(keys.map(key => db.execute(queries[key])));
+  const keys = Object.keys(queries);
+  const results = await Promise.all(keys.map(key => db.execute(queries[key])));
 
-    results.forEach((result, index) => {
-      // node-postgres returns PostgreSQL COUNT(*) values as strings.
-      stats[keys[index]] = Number(result[0][0].count) || 0;
-    });
+  results.forEach((result, index) => {
+    // node-postgres returns PostgreSQL COUNT(*) values as strings.
+    stats[keys[index]] = Number(result[0][0].count) || 0;
+  });
 
-    // Calculate derived rates
-    const bedOccupancyRate = stats.totalRooms > 0 ? (stats.occupiedRooms / stats.totalRooms) * 100 : 0;
-    const doctorUtilizationRate = stats.totalDoctors > 0 ? (stats.busyDoctors / stats.totalDoctors) * 100 : 0;
+  const bedOccupancyRate = stats.totalRooms > 0 ? (stats.occupiedRooms / stats.totalRooms) * 100 : 0;
+  const doctorUtilizationRate = stats.totalDoctors > 0 ? (stats.busyDoctors / stats.totalDoctors) * 100 : 0;
+  const treatmentEfficiency = stats.totalPatients > 0 ? (stats.dischargedPatients / stats.totalPatients) * 100 : 0;
+  const criticalLoad = stats.admittedPatients > 0 ? (stats.emergencyAdmitted / stats.admittedPatients) * 100 : 0;
 
-    // Overall treatment efficiency (discharged / total patients)
-    const treatmentEfficiency = stats.totalPatients > 0 ? (stats.dischargedPatients / stats.totalPatients) * 100 : 0;
+  return {
+    ...stats,
+    bedOccupancyRate: Math.round(bedOccupancyRate),
+    doctorUtilizationRate: Math.round(doctorUtilizationRate),
+    treatmentEfficiency: Math.round(treatmentEfficiency),
+    criticalLoad: Math.round(criticalLoad)
+  };
+}
 
-    // Critical load (emergency / total admitted)
-    const criticalLoad = stats.admittedPatients > 0 ? (stats.emergencyAdmitted / stats.admittedPatients) * 100 : 0;
+function getSystemHealthChecks(stats) {
+  return [
+    {
+      name: "Emergency Department Status",
+      status: stats.criticalLoad > 20 ? "High capacity warning" : "Operating normally",
+      description: stats.criticalLoad > 20
+        ? "Routing new emergencies may be delayed."
+        : "Capable of handling new traumas."
+    },
+    {
+      name: "Staffing Levels",
+      status: stats.doctorUtilizationRate > 85 ? "Staffing strain" : "Adequate staffing",
+      description: stats.doctorUtilizationRate > 85
+        ? "Medical staff are severely strained. Consider calling on-call physicians."
+        : "Adequate physician availability for current patient volume."
+    },
+    {
+      name: "Bed Availability",
+      status: stats.bedOccupancyRate > 90 ? "Critical bed shortage" : "Normal availability",
+      description: stats.bedOccupancyRate > 90
+        ? "Expedite discharges if clinically appropriate."
+        : "Normal bed availability across all wards."
+    }
+  ];
+}
 
+app.get("/api/efficiency", verifyToken, async (req, res) => {
+  try {
+    const stats = await getEfficiencyStats();
     res.json({
-      ...stats,
-      bedOccupancyRate: Math.round(bedOccupancyRate),
-      doctorUtilizationRate: Math.round(doctorUtilizationRate),
-      treatmentEfficiency: Math.round(treatmentEfficiency),
-      criticalLoad: Math.round(criticalLoad)
+      ...stats
     });
   } catch (err) {
     console.error("Efficiency API Error:", err);
@@ -362,6 +391,58 @@ app.put("/discharge/:id", verifyToken, requireRole("admin", "doctor"), async (re
   } catch (err) {
     console.error("Discharge Error:", err);
     res.status(500).send("Server Error during discharge");
+  }
+});
+
+app.get("/api/reports/efficiency/pdf", verifyToken, requireRole("admin"), async (req, res) => {
+  try {
+    const stats = await getEfficiencyStats();
+    const generatedAt = new Date();
+    const fileDate = generatedAt.toISOString().replace(/[:.]/g, "-").slice(0, 16);
+    const document = new PDFDocument({ margin: 50, size: "A4" });
+
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader("Content-Disposition", `attachment; filename=efficiency-report-${fileDate}.pdf`);
+    document.pipe(res);
+
+    const sectionTitle = (title) => {
+      document.moveDown(1).fontSize(16).fillColor("#0f4c81").text(title).moveDown(0.4);
+    };
+    const metric = (name, value, percentage, detail) => {
+      document.fontSize(11).fillColor("#1f2937").text(name, { continued: true });
+      document.font("Helvetica-Bold").text(`  ${value} (${percentage}%)`);
+      document.font("Helvetica").fontSize(9).fillColor("#6b7280").text(detail).moveDown(0.5);
+    };
+
+    document.fontSize(22).fillColor("#0f4c81").text(process.env.HOSPITAL_NAME || "Smart Hospital");
+    document.fontSize(16).fillColor("#111827").text("Hospital Efficiency Analytics Report");
+    document.fontSize(9).fillColor("#6b7280").text(`Generated: ${generatedAt.toLocaleString()}`);
+    document.moveDown().moveTo(50, document.y).lineTo(545, document.y).strokeColor("#d1d5db").stroke();
+
+    sectionTitle("Key Metrics");
+    metric("Bed Occupancy", `${stats.occupiedRooms}/${stats.totalRooms}`, stats.bedOccupancyRate, "Active beds currently in use");
+    metric("Doctor Utilization", `${stats.busyDoctors}/${stats.totalDoctors}`, stats.doctorUtilizationRate, "Doctors currently busy");
+    metric("Treatment Efficiency", `${stats.dischargedPatients} discharged`, stats.treatmentEfficiency, `Out of ${stats.totalPatients} historically`);
+
+    sectionTitle("Utilization Deep Dive");
+    metric("Inpatient Ward Capacity", `${stats.occupiedRooms}/${stats.totalRooms}`, stats.bedOccupancyRate, "Occupied rooms out of total rooms");
+    metric("Medical Staff Bandwidth", `${stats.busyDoctors}/${stats.totalDoctors}`, stats.doctorUtilizationRate, "Busy doctors out of total doctors");
+    metric("Critical Care Load", `${stats.emergencyAdmitted}/${stats.admittedPatients}`, stats.criticalLoad, "Critical emergency patients out of admitted patients");
+
+    sectionTitle("System Health Checks");
+    getSystemHealthChecks(stats).forEach((check) => {
+      document.fontSize(11).fillColor("#1f2937").text(`${check.name}: ${check.status}`);
+      document.fontSize(9).fillColor("#6b7280").text(check.description).moveDown(0.6);
+    });
+
+    document.end();
+  } catch (err) {
+    console.error("Efficiency PDF report error:", err);
+    if (!res.headersSent) {
+      res.status(500).json({ message: "Unable to generate the efficiency PDF report." });
+    } else {
+      res.end();
+    }
   }
 });
 
