@@ -18,6 +18,15 @@ import {
     UserCog
 } from 'lucide-react';
 
+const readStoredText = (key, fallback) => {
+    const value = localStorage.getItem(key)?.trim();
+    return value && !['undefined', 'null'].includes(value.toLowerCase())
+        ? value
+        : fallback;
+};
+
+const formatRole = (role) => role.charAt(0).toUpperCase() + role.slice(1);
+
 const DashboardLayout = () => {
     const [collapsed, setCollapsed] = useState(false);
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -30,16 +39,8 @@ const DashboardLayout = () => {
     const [notifications, setNotifications] = useState([]);
     const [unreadCount, setUnreadCount] = useState(0);
 
-    const [userName, setUserName] = useState(
-        () => localStorage.getItem('userName') || 'Staff Member'
-    );
-    const [userRole, setUserRole] = useState(() => {
-        const storedRole = localStorage.getItem('role');
-        return storedRole
-            ? storedRole.charAt(0).toUpperCase() + storedRole.slice(1)
-            : 'Admin';
-    });
-    const role = (localStorage.getItem('role') || '').toLowerCase();
+    const [profile, setProfile] = useState(null);
+    const role = readStoredText('role', '').toLowerCase();
     const canView = (...roles) => roles.includes(role);
 
     const navigate = useNavigate();
@@ -66,6 +67,14 @@ const DashboardLayout = () => {
         };
         document.addEventListener('keydown', handleEscape);
         return () => document.removeEventListener('keydown', handleEscape);
+    }, []);
+
+    // Avoid rendering stale strings such as "undefined" while the stored
+    // identity is being read. The header uses a small placeholder until then.
+    useEffect(() => {
+        const name = readStoredText('userName', 'Staff');
+        const storedRole = readStoredText('role', 'staff');
+        setProfile({ name, role: formatRole(storedRole) });
     }, []);
 
     // ==========================
@@ -343,10 +352,11 @@ const DashboardLayout = () => {
                     >
 
                         {/* NOTIFICATIONS */}
-                        <div ref={notifRef} style={{ position: 'relative' }}>
+                        <div ref={notifRef} className="notification-menu">
                             <button
-                                className="toggle-btn"
+                                className="toggle-btn notification-toggle"
                                 onClick={openNotifications}
+                                aria-label="Notifications"
                             >
                                 <Bell size={20} />
 
@@ -435,16 +445,21 @@ const DashboardLayout = () => {
                                 gap: '8px'
                             }}
                         >
-                            <div className="avatar">
-                                {getInitials(userName)}
-                            </div>
-
-                            <div>
-                                <div>{userName}</div>
-                                <div style={{ fontSize: '12px' }}>
-                                    {userRole}
+                            {profile ? <>
+                                <div className="avatar">
+                                    {getInitials(profile.name)}
                                 </div>
-                            </div>
+
+                                <div className="user-profile-details">
+                                    <div>{profile.name}</div>
+                                    <div style={{ fontSize: '12px' }}>
+                                        {profile.role}
+                                    </div>
+                                </div>
+                            </> : <>
+                                <div className="avatar avatar-skeleton" aria-label="Loading profile" />
+                                <div className="user-profile-details profile-text-skeleton" aria-hidden="true" />
+                            </>}
 
                             {showProfile && (
                                 <div
@@ -460,6 +475,10 @@ const DashboardLayout = () => {
                                         zIndex: 100
                                     }}
                                 >
+                                    <div className="profile-dropdown-identity">
+                                        <strong>{profile?.name || 'Staff'}</strong>
+                                        <span>{profile?.role || 'Loading...'}</span>
+                                    </div>
                                     {/* PROFILE */}
                                     <div
                                         onClick={handleProfile}

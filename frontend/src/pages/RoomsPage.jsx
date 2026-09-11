@@ -87,7 +87,7 @@ const RoomsPage = () => {
     ).length;
 
     return (
-        <>
+        <div className="rooms-page">
             {/* PAGE HEADER */}
             <div className="page-header">
                 <div>
@@ -253,12 +253,13 @@ const RoomsPage = () => {
                     </button>
                 </div>
 
-                <div className="filter-tabs" style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', padding: '0 16px 16px' }}>
+                <div className="room-status-tabs" aria-label="Filter rooms by status">
                     {ROOM_STATUSES.map((status) => (
                         <button
                             key={status}
                             type="button"
                             onClick={() => setSelectedStatus(status)}
+                            aria-pressed={selectedStatus === status}
                             style={{
                                 padding: '5px 12px', borderRadius: '20px', border: '1px solid',
                                 borderColor: selectedStatus === status ? 'var(--primary)' : 'var(--border)',
@@ -374,7 +375,7 @@ const RoomsPage = () => {
                     </table>
                 </div>
             </div>
-        </>
+        </div>
     );
 };
 

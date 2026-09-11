@@ -148,6 +148,11 @@ button {
   display: flex;
   align-items: center;
   justify-content: center;
+  flex: 0 0 36px;
+}
+
+.auth-logo-text {
+  min-width: 0;
 }
 
 .auth-title {
@@ -290,6 +295,11 @@ button {
   gap: 20px;
 }
 
+.notification-menu {
+  position: relative;
+  flex: 0 0 auto;
+}
+
 .user-profile {
   display: flex;
   align-items: center;
@@ -307,6 +317,49 @@ button {
   align-items: center;
   justify-content: center;
   font-weight: 600;
+}
+
+.avatar-skeleton,
+.profile-text-skeleton {
+  animation: profile-pulse 1.2s ease-in-out infinite;
+  background: var(--surface-hover);
+}
+
+.profile-text-skeleton {
+  width: 84px;
+  height: 28px;
+  border-radius: 4px;
+}
+
+.profile-dropdown-identity {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 12px;
+  border-bottom: 1px solid #eee;
+}
+
+.profile-dropdown-identity span {
+  color: var(--text-gray);
+  font-size: 12px;
+}
+
+@keyframes profile-pulse {
+  50% { opacity: 0.55; }
+}
+
+.rooms-page {
+  padding-bottom: calc(32px + env(safe-area-inset-bottom, 0px));
+}
+
+.room-status-tabs {
+  display: flex;
+  gap: 8px;
+  padding: 0 16px 16px;
+}
+
+.room-status-tabs button {
+  flex: 0 0 auto;
 }
 
 /* Page Headers */
@@ -750,6 +803,11 @@ button {
     display: inline-flex;
   }
 
+  /* The drawer button replaces the desktop collapse button on mobile. */
+  .topbar-left > .toggle-btn:not(.mobile-menu-toggle) {
+    display: none;
+  }
+
   .sidebar .nav-item {
     min-height: 44px;
   }
@@ -772,6 +830,13 @@ button {
   .filter-tabs button {
     min-width: 44px;
     min-height: 44px;
+  }
+
+  .room-status-tabs {
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
   }
 }
 
@@ -816,11 +881,47 @@ button {
   }
 
   .topbar-right {
-    gap: 8px !important;
+    gap: 12px !important;
   }
 
-  .user-profile > div:last-child {
+  .user-profile-details {
     display: none;
+  }
+
+  .user-profile {
+    gap: 0 !important;
+  }
+
+  .notification-toggle {
+    padding: 10px;
+  }
+
+  .auth-page {
+    align-items: flex-start;
+    padding: 24px 16px;
+  }
+
+  .auth-card {
+    padding: 28px 20px;
+  }
+
+  .auth-header {
+    margin-bottom: 24px;
+  }
+
+  .auth-logo {
+    flex-direction: column;
+    gap: 8px;
+    font-size: 20px;
+    line-height: 1.25;
+  }
+
+  .auth-logo-text {
+    max-width: 300px;
+  }
+
+  .auth-title {
+    font-size: 22px;
   }
 
   .page-header,
@@ -893,6 +994,15 @@ button {
     display: grid !important;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 8px !important;
+  }
+
+  .room-status-tabs {
+    display: flex !important;
+    grid-template-columns: none;
+    gap: 8px !important;
+    padding: 0 16px 16px;
+    overflow-x: auto;
+    flex-wrap: nowrap;
   }
 
   .filter-tabs button,
