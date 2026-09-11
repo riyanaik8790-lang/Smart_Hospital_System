@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { TrendingUp, Users, Activity, HeartPulse, BedDouble, AlertCircle, RefreshCw, Download, LoaderCircle } from 'lucide-react';
+import { TrendingUp, Users, Activity, HeartPulse, BedDouble, AlertCircle, RefreshCw, Download, LoaderCircle, ChevronDown } from 'lucide-react';
 import { authFetch } from '../api/authFetch';
 
 // Reusable Circular Progress Component
@@ -71,6 +71,7 @@ const EfficiencyDashboardPage = () => {
 
     const [loading, setLoading] = useState(true);
     const [exporting, setExporting] = useState('');
+    const [exportMenuOpen, setExportMenuOpen] = useState(false);
     const [notification, setNotification] = useState(null);
 
     const notify = (message, type = 'success') => {
@@ -189,7 +190,7 @@ const EfficiencyDashboardPage = () => {
 
     return (
         <>
-            <div className="page-header">
+            <div className="page-header efficiency-page-header">
                 <div>
                     <h1 className="page-title" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                         <TrendingUp size={28} color="var(--primary)" />
@@ -197,18 +198,40 @@ const EfficiencyDashboardPage = () => {
                     </h1>
                     <p className="page-subtitle">Real-time performance and utilization metrics</p>
                 </div>
-                <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-                    {loading && <RefreshCw size={18} className="text-gray" style={{ animation: 'spin 1s linear infinite' }} />}
-                    <span style={{ fontSize: '12px', color: 'var(--text-gray)' }}>Auto-updating (3s)</span>
-                    <button className="btn btn-outline" onClick={fetchEfficiencyData}><RefreshCw size={16} /> Refresh</button>
-                    <button className="btn btn-outline" onClick={exportCsv} disabled={Boolean(exporting)}>
-                        {exporting === 'csv' ? <LoaderCircle size={16} style={{ animation: 'spin 1s linear infinite' }} /> : <Download size={16} />}
-                        Export CSV
-                    </button>
-                    <button className="btn btn-primary" onClick={exportPdf} disabled={Boolean(exporting)}>
-                        {exporting === 'pdf' ? <LoaderCircle size={16} style={{ animation: 'spin 1s linear infinite' }} /> : <Download size={16} />}
-                        Export PDF
-                    </button>
+                <div className="efficiency-action-bar">
+                    <span className="efficiency-live-status" aria-label="Live, auto-updating every 3 seconds">
+                        <span className="efficiency-live-dot" aria-hidden="true" />
+                        Live · 3s
+                    </span>
+                    <div className="efficiency-action-buttons">
+                        <button className="btn btn-outline" onClick={fetchEfficiencyData} disabled={loading}>
+                            {loading ? <LoaderCircle size={16} style={{ animation: 'spin 1s linear infinite' }} /> : <RefreshCw size={16} />}
+                            Refresh
+                        </button>
+                        <div className="efficiency-export-menu">
+                            <button
+                                className="btn btn-primary"
+                                onClick={() => setExportMenuOpen((isOpen) => !isOpen)}
+                                aria-expanded={exportMenuOpen}
+                                aria-haspopup="menu"
+                                disabled={Boolean(exporting)}
+                            >
+                                {exporting ? <LoaderCircle size={16} style={{ animation: 'spin 1s linear infinite' }} /> : <Download size={16} />}
+                                Export
+                                <ChevronDown size={16} aria-hidden="true" />
+                            </button>
+                            {exportMenuOpen && (
+                                <div className="efficiency-export-options" role="menu">
+                                    <button type="button" role="menuitem" onClick={() => { setExportMenuOpen(false); exportCsv(); }}>
+                                        <Download size={16} /> Export as CSV
+                                    </button>
+                                    <button type="button" role="menuitem" onClick={() => { setExportMenuOpen(false); exportPdf(); }}>
+                                        <Download size={16} /> Export as PDF
+                                    </button>
+                                </div>
+                            )}
+                        </div>
+                    </div>
                 </div>
             </div>
 
