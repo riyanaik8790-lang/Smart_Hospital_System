@@ -32,7 +32,6 @@
   --radius-lg: 16px;
 
   --sidebar-width: 250px;
-  --sidebar-collapsed: 80px;
   --header-height: 64px;
 }
 
@@ -204,10 +203,6 @@ button {
   z-index: 10;
 }
 
-.sidebar.collapsed {
-  width: var(--sidebar-collapsed);
-}
-
 .sidebar-header {
   height: var(--header-height);
   display: flex;
@@ -215,16 +210,6 @@ button {
   justify-content: space-between;
   padding: 0 24px;
   border-bottom: 1px solid var(--border);
-}
-
-.sidebar.collapsed .sidebar-header {
-  padding: 0;
-  justify-content: center;
-}
-
-.sidebar.collapsed .brand-name,
-.sidebar.collapsed .nav-text {
-  display: none;
 }
 
 .nav-menu {
@@ -244,11 +229,6 @@ button {
   color: var(--text-gray);
   font-weight: 500;
   transition: all 0.2s;
-}
-
-.sidebar.collapsed .nav-item {
-  justify-content: center;
-  padding: 14px;
 }
 
 .nav-item:hover,
@@ -891,10 +871,6 @@ button {
     z-index: 1000;
   }
 
-  .sidebar.collapsed {
-    width: min(82vw, 320px);
-  }
-
   .sidebar.mobile-open {
     transform: translateX(0);
   }
@@ -913,8 +889,8 @@ button {
     display: inline-flex;
   }
 
-  /* The drawer button replaces the desktop collapse button on mobile. */
-  .topbar-left > .toggle-btn:not(.mobile-menu-toggle) {
+  /* The drawer button replaces the inactive desktop menu control on mobile. */
+  .desktop-menu-control {
     display: none;
   }
 

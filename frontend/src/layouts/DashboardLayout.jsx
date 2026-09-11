@@ -28,7 +28,6 @@ const readStoredText = (key, fallback) => {
 const formatRole = (role) => role.charAt(0).toUpperCase() + role.slice(1);
 
 const DashboardLayout = () => {
-    const [collapsed, setCollapsed] = useState(false);
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
     const [showNotif, setShowNotif] = useState(false);
@@ -45,13 +44,6 @@ const DashboardLayout = () => {
 
     const navigate = useNavigate();
     const location = useLocation();
-    const hideTopbarTools = new Set([
-        '/app/dashboard',
-        '/app/queue',
-        '/app/priority-queue',
-        '/app/efficiency',
-        '/app/reports'
-    ]).has(location.pathname);
 
     const notifRef = useRef();
     const profileRef = useRef();
@@ -67,6 +59,19 @@ const DashboardLayout = () => {
         };
         document.addEventListener('keydown', handleEscape);
         return () => document.removeEventListener('keydown', handleEscape);
+    }, []);
+
+    // The navigation drawer is a mobile-only interaction. Clear its state when
+    // returning to desktop so it can never affect the full desktop sidebar.
+    useEffect(() => {
+        const desktopQuery = window.matchMedia('(min-width: 769px)');
+        const closeDrawerOnDesktop = () => {
+            if (desktopQuery.matches) setMobileMenuOpen(false);
+        };
+
+        closeDrawerOnDesktop();
+        desktopQuery.addEventListener('change', closeDrawerOnDesktop);
+        return () => desktopQuery.removeEventListener('change', closeDrawerOnDesktop);
     }, []);
 
     // Avoid rendering stale strings such as "undefined" while the stored
@@ -182,7 +187,7 @@ const DashboardLayout = () => {
                     onClick={() => setMobileMenuOpen(false)}
                 />
             )}
-            <div className={`sidebar ${collapsed ? 'collapsed' : ''} ${mobileMenuOpen ? 'mobile-open' : ''}`}>
+            <div className={`sidebar ${mobileMenuOpen ? 'mobile-open' : ''}`}>
                 <div className="sidebar-header">
                     <div
                         style={{
@@ -328,16 +333,14 @@ const DashboardLayout = () => {
                         >
                             <Menu size={20} />
                         </button>
-                        {!hideTopbarTools && <>
-                            <button
-                                className="toggle-btn"
-                                onClick={() => setCollapsed(!collapsed)}
-                                aria-label="Toggle sidebar"
-                            >
-                                <Menu size={20} />
-                            </button>
-
-                        </>}
+                        <button
+                            className="toggle-btn desktop-menu-control"
+                            type="button"
+                            onClick={() => setMobileMenuOpen(false)}
+                            aria-label="Navigation sidebar"
+                        >
+                            <Menu size={20} />
+                        </button>
                     </div>
 
                     {/* RIGHT */}
