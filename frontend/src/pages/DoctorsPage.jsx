@@ -9,6 +9,20 @@ const SPECIALTIES = [
     'Puimonar', 'Gastro', 'Oncology', 'Urology', 'Emergency'
 ];
 
+// Produces a varied demo rating that remains stable while doctors are filtered,
+// refreshed, or revisited. A real API-provided rating takes precedence.
+const getDoctorRating = (doctor) => {
+    const apiRating = Number(doctor.rating);
+    if (Number.isFinite(apiRating) && apiRating >= 1 && apiRating <= 5) {
+        return apiRating.toFixed(1);
+    }
+
+    const identity = String(doctor.doctor_id ?? doctor.name ?? 'doctor');
+    const seed = [...identity].reduce((total, character) =>
+        total + character.charCodeAt(0), 0);
+    return (3.8 + (seed % 13) / 10).toFixed(1);
+};
+
 const DoctorsPage = () => {
     const [doctorsList, setDoctorsList] = useState([]);
     const [searchTerm, setSearchTerm] = useState('');
@@ -134,6 +148,7 @@ const DoctorsPage = () => {
                 {filteredDoctors.map((doctor) => {
                     const statusStyle = getStatusStyle(doctor.status);
                     const isExpanded = expandedId === doctor.doctor_id;
+                    const rating = getDoctorRating(doctor);
 
                     return (
                         <div key={doctor.doctor_id} className="card" style={{ padding: '16px', border: '1px solid var(--border)' }}>
@@ -166,7 +181,7 @@ const DoctorsPage = () => {
                                     {doctor.status}
                                 </span>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '3px', color: '#f59e0b', fontSize: '12px', fontWeight: 600 }}>
-                                    <Star size={12} fill="currentColor" /> 4.8
+                                    <Star size={12} fill="currentColor" /> {rating}
                                 </div>
                             </div>
 
