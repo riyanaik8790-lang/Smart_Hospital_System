@@ -28,6 +28,7 @@ const AppointmentsPage = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedStatus, setSelectedStatus] = useState('All');
   const [doctors, setDoctors] = useState([]);
+  const [doctorsLoadError, setDoctorsLoadError] = useState('');
   const [formData, setFormData] = useState(EMPTY_FORM);
   const [notification, setNotification] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -66,12 +67,22 @@ const AppointmentsPage = () => {
   const fetchDoctors = useCallback(async () => {
     try {
       const response = await fetch('/doctors', { headers: authHeaders() });
-      if (!response.ok) throw new Error('Could not load doctors');
-      const data = await response.json();
-      setDoctors(Array.isArray(data) ? data : []);
+      const contentType = response.headers.get('content-type') || '';
+      const data = contentType.includes('application/json')
+        ? await response.json()
+        : await response.text();
+      if (!response.ok) {
+        const message = typeof data === 'object' ? data.message : data;
+        throw new Error(message || `Could not load doctors (HTTP ${response.status}).`);
+      }
+      if (!Array.isArray(data)) throw new Error('The server returned an invalid doctors response.');
+      setDoctors(data);
+      setDoctorsLoadError('');
     } catch (error) {
-      console.error('Doctor fetch error:', error);
-      notify('Unable to load doctors.', 'error');
+      const message = error.message || 'Unable to load doctors.';
+      console.error('Doctor fetch error:', { message, error });
+      setDoctorsLoadError(message);
+      notify(message, 'error');
     }
   }, []);
 
@@ -246,6 +257,11 @@ const AppointmentsPage = () => {
                       </option>
                     ))}
                   </select>
+                  {doctorsLoadError && (
+                    <p className="help-text" style={{ color: 'var(--danger)' }} role="alert">
+                      Could not load doctors: {doctorsLoadError}
+                    </p>
+                  )}
                 </div>
                 <div className="input-group">
                   <label>Date *</label>

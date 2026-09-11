@@ -14,16 +14,25 @@ const DoctorsPage = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedSpecialty, setSelectedSpecialty] = useState('All specialities');
     const [expandedId, setExpandedId] = useState(null);
+    const [loadError, setLoadError] = useState('');
 
     const fetchDoctors = async () => {
         try {
             const res = await authFetch('/doctors');
-            if (res.ok) {
-                const data = await res.json();
-                if (Array.isArray(data)) setDoctorsList(data);
+            const contentType = res.headers.get('content-type') || '';
+            const data = contentType.includes('application/json')
+                ? await res.json()
+                : await res.text();
+            if (!res.ok) {
+                const message = typeof data === 'object' ? data.message : data;
+                throw new Error(message || `Unable to load doctors (HTTP ${res.status}).`);
             }
+            if (!Array.isArray(data)) throw new Error('The server returned an invalid doctors response.');
+            setDoctorsList(data);
+            setLoadError('');
         } catch (err) {
             console.error('Error fetching doctors:', err);
+            setLoadError(err.message || 'Unable to load doctors. Please try again.');
         }
     };
 
@@ -190,7 +199,13 @@ const DoctorsPage = () => {
                 })}
             </div>
 
-            {filteredDoctors.length === 0 && (
+            {loadError && (
+                <div className="alert alert-error" style={{ marginTop: '20px' }}>
+                    {loadError}
+                </div>
+            )}
+
+            {!loadError && filteredDoctors.length === 0 && (
                 <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text-gray)' }}>
                     No doctors found matching your search.
                 </div>

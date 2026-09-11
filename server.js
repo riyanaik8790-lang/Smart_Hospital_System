@@ -696,22 +696,30 @@ app.get("/doctors", verifyToken, async (req, res) => {
   try {
     const [result] = await db.execute(`
       SELECT 
-        doctor_id,
-        name,
-        specialization,
-        status,
-        phone,
-        email
+        d.doctor_id,
+        d.name,
+        d.specialization,
+        d.status,
+        d.phone,
+        d.email
       FROM doctors d
-      LEFT JOIN users u ON u.user_id = d.user_id
-      WHERE d.user_id IS NULL OR u.is_active = TRUE
-      ORDER BY doctor_id ASC
+      -- user_id was added after the original doctors table existed. Using
+      -- to_jsonb keeps this read endpoint compatible until migration 002 has
+      -- been run, while still hiding a doctor linked to an inactive user.
+      LEFT JOIN users u ON u.user_id::text = (to_jsonb(d) ->> 'user_id')
+      WHERE (to_jsonb(d) ->> 'user_id') IS NULL OR u.is_active = TRUE
+      ORDER BY d.doctor_id ASC
     `);
 
     res.json(result);
 
   } catch (err) {
-    console.error("Error fetching doctors:", err);
+    console.error("Error fetching doctors:", {
+      message: err.message,
+      code: err.code,
+      detail: err.detail,
+      hint: err.hint
+    });
 
     res.status(500).json({
       success: false,
