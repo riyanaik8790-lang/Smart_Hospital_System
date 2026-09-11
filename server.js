@@ -477,11 +477,17 @@ app.post("/appointments", verifyToken, requireRole("admin", "receptionist"), asy
     // Date-only appointment values must be compared in the server's calendar,
     // not converted to UTC where a timezone offset could shift the day.
     if (!isValidDateOnly(appointment_date)) {
-      return res.status(400).json({ message: "Appointment date must be a valid date." });
+      return res.status(400).json({
+        error: "Appointment date must be a valid date.",
+        message: "Appointment date must be a valid date."
+      });
     }
 
     if (appointment_date < serverToday()) {
-      return res.status(400).json({ message: "Appointment date cannot be in the past." });
+      return res.status(400).json({
+        error: "Appointment date cannot be in the past",
+        message: "Appointment date cannot be in the past."
+      });
     }
 
     if (normalizedPhone && !/^\d{10}$/.test(normalizedPhone)) {

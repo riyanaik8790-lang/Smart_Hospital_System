@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { TrendingUp, Users, Activity, HeartPulse, BedDouble, AlertCircle, RefreshCw, Download, LoaderCircle, ChevronDown } from 'lucide-react';
+import { TrendingUp, Users, Activity, HeartPulse, BedDouble, AlertCircle, Download, LoaderCircle, ChevronDown } from 'lucide-react';
 import { authFetch } from '../api/authFetch';
 
 // Reusable Circular Progress Component
@@ -204,10 +204,6 @@ const EfficiencyDashboardPage = () => {
                         Live · 3s
                     </span>
                     <div className="efficiency-action-buttons">
-                        <button className="btn btn-outline" onClick={fetchEfficiencyData} disabled={loading}>
-                            {loading ? <LoaderCircle size={16} style={{ animation: 'spin 1s linear infinite' }} /> : <RefreshCw size={16} />}
-                            Refresh
-                        </button>
                         <div className="efficiency-export-menu">
                             <button
                                 className="btn btn-primary"
