@@ -10,6 +10,8 @@ const EMPTY_FORM = {
   reason: ''
 };
 const APPOINTMENT_STATUSES = ['All', 'Upcoming', 'Completed', 'Cancelled'];
+const TIME_HOURS = Array.from({ length: 24 }, (_, hour) => String(hour).padStart(2, '0'));
+const TIME_MINUTES = Array.from({ length: 12 }, (_, minute) => String(minute * 5).padStart(2, '0'));
 
 const localToday = () => {
   const now = new Date();
@@ -112,6 +114,19 @@ const AppointmentsPage = () => {
       ? value.replace(/\D/g, '').slice(0, 10)
       : value;
     setFormData((current) => ({ ...current, [name]: nextValue }));
+  };
+
+  const handleTimeChange = (part, value) => {
+    const [currentHour = '', currentMinute = ''] = formData.appointment_time.split(':');
+    const hour = part === 'hour' ? value : currentHour;
+    const minute = part === 'minute' ? value : currentMinute;
+    setFormData((current) => ({
+      ...current,
+      // Keep a partial selection so choosing the hour does not reset before
+      // the user can select the minute. The required selects prevent submit
+      // until both parts are present.
+      appointment_time: `${hour}:${minute}`
+    }));
   };
 
   const handleBook = async (event) => {
@@ -277,7 +292,30 @@ const AppointmentsPage = () => {
                 </div>
                 <div className="input-group">
                   <label>Time *</label>
-                  <input className="form-control" name="appointment_time" value={formData.appointment_time} onChange={handleChange} type="time" required />
+                  <div className="appointment-time-fields" role="group" aria-label="Appointment time">
+                    <select
+                      className="form-control"
+                      value={formData.appointment_time.split(':')[0] || ''}
+                      onChange={(event) => handleTimeChange('hour', event.target.value)}
+                      aria-label="Hour"
+                      required
+                    >
+                      <option value="">Hour</option>
+                      {TIME_HOURS.map((hour) => <option key={hour} value={hour}>{hour}</option>)}
+                    </select>
+                    <span className="time-separator" aria-hidden="true">:</span>
+                    <select
+                      className="form-control"
+                      value={formData.appointment_time.split(':')[1] || ''}
+                      onChange={(event) => handleTimeChange('minute', event.target.value)}
+                      aria-label="Minute"
+                      required
+                    >
+                      <option value="">Minute</option>
+                      {TIME_MINUTES.map((minute) => <option key={minute} value={minute}>{minute}</option>)}
+                    </select>
+                  </div>
+                  <p className="help-text">Choose the hour and minute. This avoids the mobile time-picker dialog.</p>
                 </div>
                 <div className="input-group">
                   <label>Reason</label>
