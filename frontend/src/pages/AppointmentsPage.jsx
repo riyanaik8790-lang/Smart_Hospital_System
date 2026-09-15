@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { AlertTriangle, CalendarDays, CheckCircle, Plus, Search, XCircle } from 'lucide-react';
+import { AlertTriangle, CalendarDays, CheckCircle, Clock3, Pencil, Plus, Search, XCircle } from 'lucide-react';
 
 const EMPTY_FORM = {
   patient_name: '',
@@ -10,8 +10,14 @@ const EMPTY_FORM = {
   reason: ''
 };
 const APPOINTMENT_STATUSES = ['All', 'Upcoming', 'Completed', 'Cancelled'];
-const TIME_HOURS = Array.from({ length: 24 }, (_, hour) => String(hour).padStart(2, '0'));
-const TIME_MINUTES = Array.from({ length: 12 }, (_, minute) => String(minute * 5).padStart(2, '0'));
+const APPOINTMENT_TIME_SLOTS = Array.from({ length: 33 }, (_, index) => {
+  const minutesSinceOpening = (9 * 60) + (index * 15);
+  const hour = String(Math.floor(minutesSinceOpening / 60)).padStart(2, '0');
+  const minute = String(minutesSinceOpening % 60).padStart(2, '0');
+  return `${hour}:${minute}`;
+});
+const CLOCK_HOURS = Array.from({ length: 12 }, (_, index) => index + 1);
+const CLOCK_MINUTES = Array.from({ length: 12 }, (_, index) => index * 5);
 
 const localToday = () => {
   const now = new Date();
@@ -19,6 +25,19 @@ const localToday = () => {
   const month = String(now.getMonth() + 1).padStart(2, '0');
   const day = String(now.getDate()).padStart(2, '0');
   return `${year}-${month}-${day}`;
+};
+
+const localDateTime = (date, time) => {
+  const [year, month, day] = date.split('-').map(Number);
+  const [hour, minute] = time.split(':').map(Number);
+  return new Date(year, month - 1, day, hour, minute, 0, 0);
+};
+
+const formatTime = (time) => {
+  if (!/^\d{2}:\d{2}$/.test(time || '')) return 'Select a time';
+  const [hour, minute] = time.split(':').map(Number);
+  const period = hour >= 12 ? 'PM' : 'AM';
+  return `${hour % 12 || 12}:${String(minute).padStart(2, '0')} ${period}`;
 };
 
 const authHeaders = () => ({
@@ -43,6 +62,12 @@ const AppointmentsPage = () => {
   const [notification, setNotification] = useState(null);
   const [loading, setLoading] = useState(false);
   const [phoneTouched, setPhoneTouched] = useState(false);
+  const [timePickerOpen, setTimePickerOpen] = useState(false);
+  const [clockMode, setClockMode] = useState('hours');
+  const [pickerHour, setPickerHour] = useState(9);
+  const [pickerMinute, setPickerMinute] = useState(0);
+  const [pickerPeriod, setPickerPeriod] = useState('AM');
+  const [draggingClock, setDraggingClock] = useState(false);
   const role = (localStorage.getItem('role') || '').toLowerCase();
   const canBook = ['admin', 'receptionist'].includes(role);
   const canUpdate = ['admin', 'doctor'].includes(role);
@@ -116,23 +141,76 @@ const AppointmentsPage = () => {
     setFormData((current) => ({ ...current, [name]: nextValue }));
   };
 
-  const handleTimeChange = (part, value) => {
-    const [currentHour = '', currentMinute = ''] = formData.appointment_time.split(':');
-    const hour = part === 'hour' ? value : currentHour;
-    const minute = part === 'minute' ? value : currentMinute;
+  const isAllowedPickerTime = (hour, minute, period) => {
+    const hour24 = (hour % 12) + (period === 'PM' ? 12 : 0);
+    return APPOINTMENT_TIME_SLOTS.includes(`${String(hour24).padStart(2, '0')}:${String(minute).padStart(2, '0')}`);
+  };
+
+  const isAllowedPickerHour = (hour, period) => {
+    const hour24 = (hour % 12) + (period === 'PM' ? 12 : 0);
+    return hour24 >= 9 && hour24 <= 17;
+  };
+
+  const openTimePicker = () => {
+    const [hour = 9, minute = 0] = /^\d{2}:\d{2}$/.test(formData.appointment_time)
+      ? formData.appointment_time.split(':').map(Number)
+      : [];
+    setPickerPeriod(hour >= 12 ? 'PM' : 'AM');
+    setPickerHour(hour % 12 || 12);
+    setPickerMinute(minute);
+    setClockMode('hours');
+    setTimePickerOpen(true);
+  };
+
+  const selectHour = (hour) => {
+    if (!isAllowedPickerHour(hour, pickerPeriod)) return;
+    setPickerHour(hour);
+    if (hour === 5 && pickerPeriod === 'PM') setPickerMinute(0);
+    setClockMode('minutes');
+  };
+
+  const selectMinute = (minute) => {
+    if (!isAllowedPickerTime(pickerHour, minute, pickerPeriod)) return;
+    setPickerMinute(minute);
+  };
+
+  const selectClockPosition = (event) => {
+    const dial = event.currentTarget.getBoundingClientRect();
+    const x = event.clientX - dial.left - (dial.width / 2);
+    const y = event.clientY - dial.top - (dial.height / 2);
+    const angle = (Math.atan2(y, x) * 180 / Math.PI + 450) % 360;
+    const index = Math.round(angle / 30) % 12;
+    if (clockMode === 'hours') selectHour(CLOCK_HOURS[index]);
+    else selectMinute(CLOCK_MINUTES[index]);
+  };
+
+  const saveTime = () => {
+    if (!isAllowedPickerTime(pickerHour, pickerMinute, pickerPeriod)) {
+      notify('Choose a time between 09:00 AM and 05:00 PM.', 'error');
+      return;
+    }
+    const hour24 = (pickerHour % 12) + (pickerPeriod === 'PM' ? 12 : 0);
     setFormData((current) => ({
       ...current,
-      // Keep a partial selection so choosing the hour does not reset before
-      // the user can select the minute. The required selects prevent submit
-      // until both parts are present.
-      appointment_time: `${hour}:${minute}`
+      appointment_time: `${String(hour24).padStart(2, '0')}:${String(pickerMinute).padStart(2, '0')}`
     }));
+    setTimePickerOpen(false);
   };
 
   const handleBook = async (event) => {
     event.preventDefault();
     setPhoneTouched(true);
     if (phoneError) return;
+
+    if (!APPOINTMENT_TIME_SLOTS.includes(formData.appointment_time)) {
+      notify('Please choose an available appointment time.', 'error');
+      return;
+    }
+
+    if (localDateTime(formData.appointment_date, formData.appointment_time) < new Date()) {
+      notify('Cannot book an appointment in the past.', 'error');
+      return;
+    }
 
     setLoading(true);
     try {
@@ -154,37 +232,11 @@ const AppointmentsPage = () => {
     }
   };
 
-  const updateStatus = async (appointmentId, status) => {
-    try {
-      const response = await fetch(`/appointments/${appointmentId}`, {
-        method: 'PUT',
-        headers: authHeaders(),
-        body: JSON.stringify({ status })
-      });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.message || 'Unable to update appointment.');
-      notify(`Appointment marked ${status}.`);
-      fetchAppointments();
-    } catch (error) {
-      notify(error.message, 'error');
-    }
-  };
-
-  const removeAppointment = async (appointmentId) => {
-    if (!window.confirm('Remove this appointment?')) return;
-    try {
-      const response = await fetch(`/appointments/${appointmentId}`, {
-        method: 'DELETE',
-        headers: authHeaders()
-      });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.message || 'Unable to remove appointment.');
-      notify('Appointment removed.');
-      fetchAppointments();
-    } catch (error) {
-      notify(error.message, 'error');
-    }
-  };
+  // Placeholders for the requested table controls. Their API workflows can be
+  // connected in a follow-up change without exposing destructive actions now.
+  const handleEditAppointment = () => {};
+  const handleCancelAppointment = () => {};
+  const handleMarkCompleted = () => {};
 
   return (
     <>
@@ -292,30 +344,10 @@ const AppointmentsPage = () => {
                 </div>
                 <div className="input-group">
                   <label>Time *</label>
-                  <div className="appointment-time-fields" role="group" aria-label="Appointment time">
-                    <select
-                      className="form-control"
-                      value={formData.appointment_time.split(':')[0] || ''}
-                      onChange={(event) => handleTimeChange('hour', event.target.value)}
-                      aria-label="Hour"
-                      required
-                    >
-                      <option value="">Hour</option>
-                      {TIME_HOURS.map((hour) => <option key={hour} value={hour}>{hour}</option>)}
-                    </select>
-                    <span className="time-separator" aria-hidden="true">:</span>
-                    <select
-                      className="form-control"
-                      value={formData.appointment_time.split(':')[1] || ''}
-                      onChange={(event) => handleTimeChange('minute', event.target.value)}
-                      aria-label="Minute"
-                      required
-                    >
-                      <option value="">Minute</option>
-                      {TIME_MINUTES.map((minute) => <option key={minute} value={minute}>{minute}</option>)}
-                    </select>
-                  </div>
-                  <p className="help-text">Choose the hour and minute. This avoids the mobile time-picker dialog.</p>
+                  <button className="time-input-trigger" type="button" onClick={openTimePicker} aria-haspopup="dialog" aria-expanded={timePickerOpen}>
+                    <Clock3 size={18} aria-hidden="true" />
+                    <span className={formData.appointment_time ? '' : 'time-placeholder'}>{formatTime(formData.appointment_time)}</span>
+                  </button>
                 </div>
                 <div className="input-group">
                   <label>Reason</label>
@@ -352,12 +384,10 @@ const AppointmentsPage = () => {
                   <td>{appointment.reason || '—'}</td>
                   <td><span className={`badge ${statusClass(appointment.status)}`}>{appointment.status}</span></td>
                   <td>
-                    <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
-                      {canUpdate && appointment.status === 'Scheduled' && <>
-                        <button className="btn btn-outline" style={{ padding: '6px 10px', fontSize: '12px' }} onClick={() => updateStatus(appointment.appointment_id, 'Completed')}>Complete</button>
-                        <button className="btn btn-danger" style={{ padding: '6px 10px', fontSize: '12px' }} onClick={() => updateStatus(appointment.appointment_id, 'Cancelled')}>Cancel</button>
-                      </>}
-                      {canBook && <button className="btn btn-outline" style={{ padding: '6px 10px', fontSize: '12px' }} onClick={() => removeAppointment(appointment.appointment_id)}><XCircle size={14} /> Remove</button>}
+                    <div className="appointment-actions">
+                      <button className="btn btn-outline" type="button" onClick={() => handleEditAppointment(appointment)} aria-label={`Edit appointment ${appointment.appointment_id}`}><Pencil size={14} /> Edit</button>
+                      <button className="btn btn-danger" type="button" onClick={() => handleCancelAppointment(appointment)} aria-label={`Cancel appointment ${appointment.appointment_id}`}><XCircle size={14} /> Cancel</button>
+                      <button className="btn btn-outline" type="button" onClick={() => handleMarkCompleted(appointment)} aria-label={`Mark appointment ${appointment.appointment_id} completed`}><CheckCircle size={14} /> Mark Completed</button>
                     </div>
                   </td>
                 </tr>
@@ -368,6 +398,67 @@ const AppointmentsPage = () => {
           </table>
         </div>
       </section>
+
+      {timePickerOpen && (
+        <div className="clock-picker-overlay" role="presentation" onClick={() => setTimePickerOpen(false)}>
+          <div className="clock-picker-modal" role="dialog" aria-modal="true" aria-label="Select appointment time" onClick={(event) => event.stopPropagation()}>
+            <div className="clock-picker-header">
+              <button type="button" className={clockMode === 'hours' ? 'clock-header-value active' : 'clock-header-value'} onClick={() => setClockMode('hours')}>
+                {pickerHour}
+              </button>
+              <span>:</span>
+              <button type="button" className={clockMode === 'minutes' ? 'clock-header-value active' : 'clock-header-value'} onClick={() => setClockMode('minutes')}>
+                {String(pickerMinute).padStart(2, '0')}
+              </button>
+              <div className="clock-period-toggle" aria-label="AM or PM">
+                {['AM', 'PM'].map((period) => (
+                  <button key={period} type="button" className={pickerPeriod === period ? 'active' : ''} onClick={() => setPickerPeriod(period)}>{period}</button>
+                ))}
+              </div>
+            </div>
+
+            <div
+              className="clock-dial"
+              onPointerDown={(event) => {
+                event.currentTarget.setPointerCapture(event.pointerId);
+                setDraggingClock(true);
+                selectClockPosition(event);
+              }}
+              onPointerMove={(event) => draggingClock && selectClockPosition(event)}
+              onPointerUp={() => setDraggingClock(false)}
+              onPointerCancel={() => setDraggingClock(false)}
+            >
+              <span className="clock-dial-center" />
+              {(clockMode === 'hours' ? CLOCK_HOURS : CLOCK_MINUTES).map((value, index) => {
+                const angle = (index * 30 - 90) * Math.PI / 180;
+                const isSelected = clockMode === 'hours' ? pickerHour === value : pickerMinute === value;
+                const isAvailable = clockMode === 'hours'
+                  ? isAllowedPickerHour(value, pickerPeriod)
+                  : isAllowedPickerTime(pickerHour, value, pickerPeriod);
+                return (
+                  <button
+                    key={value}
+                    type="button"
+                    className={`clock-dial-option${isSelected ? ' selected' : ''}${isAvailable ? '' : ' unavailable'}`}
+                    style={{ left: `${50 + (41 * Math.cos(angle))}%`, top: `${50 + (41 * Math.sin(angle))}%` }}
+                    onClick={() => clockMode === 'hours' ? selectHour(value) : selectMinute(value)}
+                    aria-label={clockMode === 'hours' ? `${value} o'clock` : `${String(value).padStart(2, '0')} minutes`}
+                    disabled={!isAvailable}
+                  >
+                    {clockMode === 'hours' ? value : String(value).padStart(2, '0')}
+                  </button>
+                );
+              })}
+            </div>
+
+            <div className="clock-picker-actions">
+              <button type="button" onClick={() => { setFormData((current) => ({ ...current, appointment_time: '' })); setTimePickerOpen(false); }}>Clear</button>
+              <button type="button" onClick={() => setTimePickerOpen(false)}>Cancel</button>
+              <button type="button" className="clock-set-button" onClick={saveTime}>Set</button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 };

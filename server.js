@@ -3,6 +3,7 @@ require("dotenv").config();
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const PDFDocument = require("pdfkit");
+const { createClient } = require("@supabase/supabase-js");
 const SECRET_KEY = process.env.JWT_SECRET || "hospital_secret_key";
 
 const db = require("./db");
@@ -11,6 +12,12 @@ const { requireRole } = require("./middleware/roleMiddleware");
 const express = require("express");
 const cors = require("cors");
 const path = require("path");
+
+// This client only exists on the server. Never expose the service-role key in
+// React or other browser code.
+const supabase = process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY
+  ? createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY)
+  : null;
 
 const app = express();
 app.use(cors());
@@ -463,19 +470,16 @@ const isValidDateOnly = (value) => {
   return date.getFullYear() === year && date.getMonth() === month - 1 && date.getDate() === day;
 };
 
-const isValidTimeOnly = (value) =>
-  typeof value === "string" && /^([01]\d|2[0-3]):[0-5]\d(?::[0-5]\d)?$/.test(value);
+const isAllowedAppointmentTime = (value) => {
+  if (typeof value !== "string" || !/^([01]\d|2[0-3]):[0-5]\d$/.test(value)) return false;
+  const [hour, minute] = value.split(":").map(Number);
+  return hour >= 9 && (hour < 17 || (hour === 17 && minute === 0)) && minute % 15 === 0;
+};
 
-const isTimeInPastToday = (date, time, now) => {
-  if (date !== serverToday(now)) return false;
-
-  const [hour, minute, second = 0] = time.split(":").map(Number);
-  // Construct both values in the server's local timezone. Date-only values
-  // must not be parsed as UTC, which could shift the calendar day.
-  const appointmentAt = new Date(
-    now.getFullYear(), now.getMonth(), now.getDate(), hour, minute, second, 0
-  );
-  return appointmentAt < now;
+const appointmentDateTime = (date, time) => {
+  const [year, month, day] = date.split("-").map(Number);
+  const [hour, minute] = time.split(":").map(Number);
+  return new Date(year, month - 1, day, hour, minute, 0, 0);
 };
 
 app.post("/appointments", verifyToken, requireRole("admin", "receptionist"), async (req, res) => {
@@ -499,22 +503,14 @@ app.post("/appointments", verifyToken, requireRole("admin", "receptionist"), asy
     }
 
     const now = new Date();
-    if (appointment_date < serverToday(now)) {
-      return res.status(400).json({
-        error: "Appointment date cannot be in the past",
-        message: "Appointment date cannot be in the past"
-      });
+    if (!isAllowedAppointmentTime(normalizedAppointmentTime)) {
+      return res.status(400).json({ message: "Appointments are available from 09:00 to 17:00 in 15-minute intervals." });
     }
 
-    if (!isValidTimeOnly(normalizedAppointmentTime)) {
-      return res.status(400).json({ message: "Appointment time must be a valid time." });
-    }
-
-    if (isTimeInPastToday(appointment_date, normalizedAppointmentTime, now)) {
-      return res.status(400).json({
-        error: "Appointment time cannot be in the past",
-        message: "Appointment time cannot be in the past"
-      });
+    // Construct a local date/time from the submitted pieces; ISO date-only
+    // parsing would otherwise use UTC and can shift the hospital calendar day.
+    if (appointmentDateTime(appointment_date, normalizedAppointmentTime) <= now) {
+      return res.status(400).json({ message: "Cannot book an appointment in the past." });
     }
 
     if (normalizedPhone && !/^\d{10}$/.test(normalizedPhone)) {
@@ -532,22 +528,29 @@ app.post("/appointments", verifyToken, requireRole("admin", "receptionist"), asy
       return res.status(409).json({ message: "That doctor is no longer active. Choose another doctor." });
     }
 
-    const [appointment] = await db.execute(
-      `INSERT INTO appointments
-        (patient_name, patient_phone, doctor_id, appointment_date, appointment_time, reason)
-       VALUES ($1, $2, $3, $4, $5, $6)
-       RETURNING appointment_id, patient_name, patient_phone, doctor_id, appointment_date, appointment_time, reason, status, created_at`,
-      [
-        patient_name.trim(),
-        normalizedPhone,
-        parsedDoctorId,
-        appointment_date,
-        normalizedAppointmentTime,
-        reason?.trim() || null
-      ]
-    );
+    if (!supabase) {
+      return res.status(503).json({ message: "Supabase is not configured." });
+    }
 
-    res.status(201).json(appointment[0]);
+    const { data: appointment, error: insertError } = await supabase
+      .from("appointments")
+      .insert({
+        patient_name: patient_name.trim(),
+        patient_phone: normalizedPhone,
+        doctor_id: parsedDoctorId,
+        appointment_date,
+        appointment_time: normalizedAppointmentTime,
+        reason: reason?.trim() || null
+      })
+      .select("appointment_id, patient_name, patient_phone, doctor_id, appointment_date, appointment_time, reason, status, created_at")
+      .single();
+
+    if (insertError) {
+      console.error("Supabase appointment insert error:", insertError);
+      return res.status(500).json({ message: "Unable to create appointment." });
+    }
+
+    res.status(201).json(appointment);
   } catch (err) {
     console.error("Create appointment error:", err);
     res.status(500).json({ message: "Unable to create appointment." });
