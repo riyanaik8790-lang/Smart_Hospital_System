@@ -73,6 +73,7 @@ CREATE TABLE IF NOT EXISTS patients (
   room_id INTEGER,
   status TEXT DEFAULT 'Admitted',
   created_at TIMESTAMPTZ DEFAULT NOW(),
+  discharged_at TIMESTAMPTZ,
   FOREIGN KEY (doctor_id) REFERENCES doctors(doctor_id),
   FOREIGN KEY (room_id) REFERENCES rooms(room_id)
 );

@@ -12,20 +12,52 @@ import {
 import { ChevronDown, Download } from "lucide-react";
 import { authFetch } from '../api/authFetch';
 
-const WEEKLY_TREND_DATA = [
-  { day: "Mon", admitted: 2, busyDoctors: 2, discharged: 0 },
-  { day: "Tue", admitted: 1, busyDoctors: 1, discharged: 0 },
-  { day: "Wed", admitted: 3, busyDoctors: 3, discharged: 1 },
-  { day: "Thu", admitted: 4, busyDoctors: 4, discharged: 1 },
-  { day: "Fri", admitted: 5, busyDoctors: 5, discharged: 2 },
-  { day: "Sat", admitted: 4, busyDoctors: 4, discharged: 3 },
-  { day: "Sun", admitted: 2, busyDoctors: 2, discharged: 4 }
-];
+const toDateInputValue = (date) => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
+const parseDateInput = (value) => {
+  const [year, month, day] = String(value || '').split('-').map(Number);
+  const date = new Date(year, month - 1, day);
+  return Number.isNaN(date.getTime()) ? null : date;
+};
+
+const todayInputValue = () => toDateInputValue(new Date());
+
+const createDailyTrendSeries = (startDate, endDate, metrics) => {
+  const valuesByDate = new Map(metrics.map((metric) => [metric.date, metric]));
+  const points = [];
+  const cursor = parseDateInput(startDate);
+  const finalDate = parseDateInput(endDate);
+
+  while (cursor && finalDate && cursor <= finalDate) {
+    const date = toDateInputValue(cursor);
+    const metric = valuesByDate.get(date) || {};
+    points.push({
+      date,
+      label: cursor.toLocaleDateString(undefined, { month: 'short', day: '2-digit' }),
+      admitted: Number(metric.admitted) || 0,
+      discharged: Number(metric.discharged) || 0,
+      busyDoctors: Number(metric.busyDoctors) || 0
+    });
+    cursor.setDate(cursor.getDate() + 1);
+  }
+
+  return points;
+};
 
 const Reports = () => {
   const [data, setData] = useState([]);
   const [stats, setStats] = useState({});
-  const [dateRange, setDateRange] = useState({ startDate: null, endDate: null });
+  const [dateRange, setDateRange] = useState(() => {
+    const endDate = todayInputValue();
+    const start = new Date();
+    start.setDate(start.getDate() - 6);
+    return { startDate: toDateInputValue(start), endDate };
+  });
   const [isExportOpen, setIsExportOpen] = useState(false);
   const [exporting, setExporting] = useState("");
   const [exportError, setExportError] = useState("");
@@ -69,29 +101,26 @@ const Reports = () => {
     let isCurrent = true;
 
     const loadTrends = async () => {
-      // Replace this fallback with the API request below once the backend has
-      // a date-aware trends endpoint. The selected values are YYYY-MM-DD.
       if (dateRange.startDate && dateRange.endDate) {
-        // const params = new URLSearchParams({
-        //   startDate: dateRange.startDate,
-        //   endDate: dateRange.endDate
-        // });
-        // const response = await authFetch(`/api/reports/trends?${params}`);
-        // if (!response.ok) throw new Error('Unable to load trends.');
-        // const trends = await response.json();
-        // if (isCurrent) setData(trends); // [{ day, admitted, busyDoctors, discharged }]
-
-        // Mock/filtering fallback while the data source is static.
-        if (isCurrent) setData(WEEKLY_TREND_DATA);
+        const cappedEndDate = dateRange.endDate > todayInputValue()
+          ? todayInputValue()
+          : dateRange.endDate;
+        const params = new URLSearchParams({ startDate: dateRange.startDate, endDate: cappedEndDate });
+        const response = await authFetch(`/api/reports/trends?${params}`);
+        const trends = await response.json();
+        if (!response.ok) throw new Error(trends.message || 'Unable to load trends.');
+        if (isCurrent) setData(createDailyTrendSeries(dateRange.startDate, cappedEndDate, trends));
         return;
       }
 
-      if (isCurrent) setData(WEEKLY_TREND_DATA);
+      if (isCurrent) setData([]);
     };
 
     loadTrends().catch((error) => console.error("Error loading date-range trends:", error));
     return () => { isCurrent = false; };
   }, [dateRange]);
+
+  const xAxisInterval = data.length > 14 ? Math.ceil(data.length / 7) - 1 : 0;
 
   const handleExportCSV = () => {
     setExporting("csv");
@@ -108,9 +137,9 @@ const Reports = () => {
         ["Treatment Efficiency", `${stats.treatmentEfficiency || 0}%`],
         ["Critical Load", `${stats.criticalLoad || 0}%`],
         [],
-        ["Weekly Hospital Trends"],
-        ["Day", "Admitted", "Busy Doctors", "Discharged"],
-        ...data.map(({ day, admitted, busyDoctors, discharged }) => [day, admitted, busyDoctors, discharged])
+        ["Hospital Trends"],
+        ["Date", "Admitted", "Busy Doctors", "Discharged"],
+        ...data.map(({ date, admitted, busyDoctors, discharged }) => [date, admitted, busyDoctors, discharged])
       ];
       downloadBlob(
         new Blob([rows.map((row) => row.map(csvCell).join(",")).join("\r\n")], { type: "text/csv;charset=utf-8" }),
@@ -176,7 +205,7 @@ const Reports = () => {
                 type="date"
                 className="form-control"
                 value={dateRange.startDate || ""}
-                max={dateRange.endDate || undefined}
+                max={dateRange.endDate || todayInputValue()}
                 onChange={(event) => setDateRange((current) => ({ ...current, startDate: event.target.value || null }))}
               />
             </label>
@@ -187,7 +216,11 @@ const Reports = () => {
                 className="form-control"
                 value={dateRange.endDate || ""}
                 min={dateRange.startDate || undefined}
-                onChange={(event) => setDateRange((current) => ({ ...current, endDate: event.target.value || null }))}
+                max={todayInputValue()}
+                onChange={(event) => setDateRange((current) => {
+                  const selectedEndDate = event.target.value || null;
+                  return { ...current, endDate: selectedEndDate && selectedEndDate > todayInputValue() ? todayInputValue() : selectedEndDate };
+                })}
               />
             </label>
           </div>
@@ -282,11 +315,11 @@ const Reports = () => {
           <LineChart data={data}>
             <CartesianGrid strokeDasharray="3 3" />
 
-            <XAxis dataKey="day" />
+            <XAxis dataKey="label" interval={xAxisInterval} minTickGap={18} />
 
             <YAxis />
 
-            <Tooltip />
+            <Tooltip labelFormatter={(_, payload) => payload?.[0]?.payload?.date || ''} />
 
             <Legend />
 

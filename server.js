@@ -451,7 +451,7 @@ app.put("/discharge/:id", verifyToken, requireRole("admin", "doctor"), async (re
     const { doctor_id, room_id } = patient;
 
     // Start Discharge Process
-    await db.execute("UPDATE patients SET status='Discharged' WHERE patient_id=?", [patientId]);
+    await db.execute("UPDATE patients SET status='Discharged', discharged_at=NOW() WHERE patient_id=?", [patientId]);
 
     if (doctor_id) {
       await db.execute("UPDATE doctors SET status='Available' WHERE doctor_id=?", [doctor_id]);
@@ -469,6 +469,61 @@ app.put("/discharge/:id", verifyToken, requireRole("admin", "doctor"), async (re
   } catch (err) {
     console.error("Discharge Error:", err);
     res.status(500).send("Server Error during discharge");
+  }
+});
+
+const isValidReportDate = (value) => {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value || '')) return false;
+  const [year, month, day] = value.split('-').map(Number);
+  const parsed = new Date(Date.UTC(year, month - 1, day));
+  return parsed.getUTCFullYear() === year && parsed.getUTCMonth() === month - 1 && parsed.getUTCDate() === day;
+};
+
+// One normalized record per calendar day makes the client chart stable for
+// short and long ranges alike. The end date is capped on the server as well,
+// so a crafted client request cannot generate future data points.
+app.get("/api/reports/trends", verifyToken, requireRole("admin"), async (req, res) => {
+  try {
+    const startDate = String(req.query.startDate || '');
+    const requestedEndDate = String(req.query.endDate || '');
+    if (!isValidReportDate(startDate) || !isValidReportDate(requestedEndDate)) {
+      return res.status(400).json({ message: "startDate and endDate must use valid YYYY-MM-DD values." });
+    }
+
+    const today = new Date();
+    const currentDate = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+    const endDate = requestedEndDate > currentDate ? currentDate : requestedEndDate;
+    if (startDate > endDate) {
+      return res.status(400).json({ message: "The start date must not be after the current date." });
+    }
+
+    const [trends] = await db.execute(
+      `WITH report_days AS (
+         SELECT generate_series($1::date, $2::date, INTERVAL '1 day')::date AS date
+       )
+       SELECT
+         TO_CHAR(report_days.date, 'YYYY-MM-DD') AS date,
+         COUNT(p.patient_id) FILTER (WHERE p.created_at::date = report_days.date)::int AS admitted,
+         COUNT(p.patient_id) FILTER (WHERE p.discharged_at::date = report_days.date)::int AS discharged,
+         COUNT(DISTINCT p.doctor_id) FILTER (
+           WHERE p.doctor_id IS NOT NULL
+             AND p.created_at::date <= report_days.date
+             AND (
+               (p.discharged_at IS NULL AND LOWER(p.status) <> 'discharged')
+               OR p.discharged_at::date > report_days.date
+             )
+         )::int AS "busyDoctors"
+       FROM report_days
+       LEFT JOIN patients p ON p.created_at::date <= report_days.date
+       GROUP BY report_days.date
+       ORDER BY report_days.date ASC`,
+      [startDate, endDate]
+    );
+
+    res.json(trends);
+  } catch (err) {
+    console.error("Report trends error:", err);
+    res.status(500).json({ message: "Unable to load report trends." });
   }
 });
 
