@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { authFetch } from '../api/authFetch';
 
 const AVATAR_OPTIONS = [
   '/avatars/clinician-1.svg', '/avatars/clinician-2.svg',
@@ -6,7 +7,7 @@ const AVATAR_OPTIONS = [
   '/avatars/clinician-5.svg', '/avatars/clinician-6.svg'
 ];
 
-export default function AvatarSelectionModal({ userId, avatarUrl, onClose, onSaved }) {
+export default function AvatarSelectionModal({ avatarUrl, onClose, onSaved }) {
   const [selectedAvatar, setSelectedAvatar] = useState(avatarUrl || AVATAR_OPTIONS[0]);
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
@@ -15,10 +16,10 @@ export default function AvatarSelectionModal({ userId, avatarUrl, onClose, onSav
     setSaving(true);
     setError('');
     try {
-      const response = await fetch('/api/users/update-avatar', {
+      const response = await authFetch('/api/users/update-avatar', {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('token') || ''}` },
-        body: JSON.stringify({ userId, avatarUrl: selectedAvatar })
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ avatarUrl: selectedAvatar })
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.message || 'Unable to save avatar.');

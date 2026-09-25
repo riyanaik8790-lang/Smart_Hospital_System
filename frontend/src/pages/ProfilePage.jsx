@@ -94,7 +94,7 @@ function ProfilePage() {
             <div>
               <div style={{ fontSize: '18px', fontWeight: 600 }}>{user.name}</div>
               <div style={{ color: 'var(--text-gray)', textTransform: 'capitalize' }}>{user.role}</div>
-              <button type="button" className="btn btn-outline" style={{ marginTop: 8, padding: '6px 10px', fontSize: 12 }} onClick={() => setAvatarModalOpen(true)} disabled={!user.userId}>Choose avatar</button>
+              <button type="button" className="btn btn-outline" style={{ marginTop: 8, padding: '6px 10px', fontSize: 12 }} onClick={() => setAvatarModalOpen(true)}>Choose avatar</button>
             </div>
           </div>
 
@@ -137,7 +137,7 @@ function ProfilePage() {
           onConfirm={deactivate}
         />
       )}
-      {avatarModalOpen && <AvatarSelectionModal userId={user.userId} avatarUrl={user.avatarUrl} onClose={() => setAvatarModalOpen(false)} onSaved={handleAvatarSaved} />}
+      {avatarModalOpen && <AvatarSelectionModal avatarUrl={user.avatarUrl} onClose={() => setAvatarModalOpen(false)} onSaved={handleAvatarSaved} />}
     </div>
   );
 }

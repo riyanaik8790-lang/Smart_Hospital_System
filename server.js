@@ -984,19 +984,19 @@ app.get("/users/me", verifyToken, async (req, res) => {
 
 app.put("/api/users/update-avatar", verifyToken, async (req, res) => {
   try {
-    const userId = Number(req.body.userId);
     const avatarUrl = String(req.body.avatarUrl || "").trim();
     const isApprovedAvatar = /^\/avatars\/clinician-[1-6]\.svg$/.test(avatarUrl);
 
-    // The logged-in user may only set their own avatar. This avoids trusting a
-    // user ID supplied by the browser to update another staff member's profile.
-    if (!Number.isInteger(userId) || userId !== req.user.id || !isApprovedAvatar) {
-      return res.status(400).json({ message: "Provide your user ID and a valid avatar selection." });
+    // The account is taken from the signed-in token, never from a browser
+    // supplied ID. This prevents both cross-account updates and false rejects
+    // when a profile response has not yet loaded its ID.
+    if (!isApprovedAvatar) {
+      return res.status(400).json({ message: "Please choose one of the available avatars." });
     }
 
     const [updated] = await db.execute(
       "UPDATE users SET avatar_url = $1 WHERE user_id = $2 AND is_active = TRUE RETURNING user_id, name, email, role, avatar_url",
-      [avatarUrl, userId]
+      [avatarUrl, req.user.id]
     );
     if (!updated.length) return res.status(404).json({ message: "Active user account not found." });
     res.json({ message: "Avatar updated.", user: updated[0] });
