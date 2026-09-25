@@ -39,6 +39,7 @@ CREATE TABLE IF NOT EXISTS rooms (
   room_number TEXT UNIQUE NOT NULL,
   type TEXT NOT NULL,
   status TEXT DEFAULT 'Available',
+  cleaning_started_at TIMESTAMPTZ,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 

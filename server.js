@@ -5,6 +5,7 @@ const jwt = require("jsonwebtoken");
 const PDFDocument = require("pdfkit");
 const { createClient } = require("@supabase/supabase-js");
 const SECRET_KEY = process.env.JWT_SECRET || "hospital_secret_key";
+const ROOM_CLEANING_DURATION_MS = 20 * 60 * 1000;
 
 const db = require("./db");
 const verifyToken = require("./middleware/verifyToken");
@@ -22,6 +23,17 @@ const supabase = process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_K
 const app = express();
 app.use(cors());
 app.use(express.json());
+
+async function clearCompletedRoomCleaning() {
+  await db.execute(
+    `UPDATE rooms
+     SET status = 'Available', cleaning_started_at = NULL
+     WHERE LOWER(status) = 'cleaning'
+       AND cleaning_started_at IS NOT NULL
+       AND cleaning_started_at <= NOW() - (? * INTERVAL '1 millisecond')`,
+    [ROOM_CLEANING_DURATION_MS]
+  );
+}
 
 // Frontend static serving setup will be added below
 
@@ -255,6 +267,7 @@ app.get("/api/efficiency", verifyToken, async (req, res) => {
 
 app.post("/add-patient", verifyToken, requireRole("admin", "receptionist"), async (req, res) => {
   try {
+    await clearCompletedRoomCleaning();
     const { name, age, category, priorityLevel, priorityLabel } = req.body;
 
     // 1. Find Room
@@ -324,6 +337,7 @@ async function admitPatient(res, name, age, category, priorityLevel, priorityLab
 
 app.post("/emergency-admit", verifyToken, requireRole("admin", "receptionist"), async (req, res) => {
   try {
+    await clearCompletedRoomCleaning();
     console.log("Processing emergency admission...");
 
     const [roomResult] = await db.execute(
@@ -400,7 +414,10 @@ app.put("/discharge/:id", verifyToken, requireRole("admin", "doctor"), async (re
     }
 
     if (room_id) {
-      await db.execute("UPDATE rooms SET status='Available' WHERE room_id=?", [room_id]);
+      await db.execute(
+        "UPDATE rooms SET status='Cleaning', cleaning_started_at=NOW() WHERE room_id=?",
+        [room_id]
+      );
     }
 
     console.log(`Patient ${patientId} discharged successfully.`);
@@ -925,8 +942,52 @@ app.get("/doctors", verifyToken, async (req, res) => {
   }
 });
 
+app.post("/rooms", verifyToken, requireRole("admin"), async (req, res) => {
+  try {
+    const roomNumber = String(req.body.roomNumber || "").trim();
+    const type = String(req.body.type || "").trim();
+    if (!roomNumber || !type) {
+      return res.status(400).json({ message: "Room number and type are required." });
+    }
+
+    const [existing] = await db.execute(
+      "SELECT room_id FROM rooms WHERE LOWER(room_number) = LOWER(?)",
+      [roomNumber]
+    );
+    if (existing.length) {
+      return res.status(409).json({ message: "A room with this number already exists." });
+    }
+
+    await db.execute(
+      "INSERT INTO rooms (room_number, type, status) VALUES (?, ?, 'Available')",
+      [roomNumber, type]
+    );
+    return res.status(201).json({ message: "Room created successfully." });
+  } catch (err) {
+    if (err.code === "23505") return res.status(409).json({ message: "A room with this number already exists." });
+    console.error("Create room error:", err);
+    return res.status(500).json({ message: "Unable to create room." });
+  }
+});
+
+app.patch("/rooms/:room_id/mark-available", verifyToken, requireRole("admin", "doctor", "nurse", "receptionist"), async (req, res) => {
+  try {
+    const [rooms] = await db.execute("SELECT status FROM rooms WHERE room_id=?", [req.params.room_id]);
+    if (!rooms.length) return res.status(404).json({ message: "Room not found." });
+    if (String(rooms[0].status).toLowerCase() !== "cleaning") {
+      return res.status(400).json({ message: "Only rooms in Cleaning status can be marked available." });
+    }
+    await db.execute("UPDATE rooms SET status='Available', cleaning_started_at=NULL WHERE room_id=?", [req.params.room_id]);
+    return res.json({ message: "Room marked available." });
+  } catch (err) {
+    console.error("Mark room available error:", err);
+    return res.status(500).json({ message: "Unable to update room status." });
+  }
+});
+
 app.get("/rooms", verifyToken, async (req, res) => {
   try {
+    await clearCompletedRoomCleaning();
     const [result] = await db.execute(`
       SELECT r.*, p.name AS patient_name
       FROM rooms r

@@ -4,7 +4,9 @@ import {
     Search,
     Filter,
     CheckCircle,
-    Clock
+    Clock,
+    Plus,
+    X
 } from 'lucide-react';
 import { authFetch } from '../api/authFetch';
 import Avatar from '../components/Avatar';
@@ -20,6 +22,11 @@ const RoomsPage = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedType, setSelectedType] = useState('All Types');
     const [selectedStatus, setSelectedStatus] = useState('All');
+    const [isAddRoomOpen, setIsAddRoomOpen] = useState(false);
+    const [newRoom, setNewRoom] = useState({ roomNumber: '', type: 'General' });
+    const [formError, setFormError] = useState('');
+    const [isSaving, setIsSaving] = useState(false);
+    const [updatingRoomId, setUpdatingRoomId] = useState(null);
 
     const fetchRooms = async () => {
         try {
@@ -49,6 +56,49 @@ const RoomsPage = () => {
         const timeout = window.setTimeout(() => setSearchTerm(searchInput.trim()), 250);
         return () => window.clearTimeout(timeout);
     }, [searchInput]);
+
+    const openAddRoom = () => {
+        setNewRoom({ roomNumber: '', type: 'General' });
+        setFormError('');
+        setIsAddRoomOpen(true);
+    };
+
+    const addRoom = async (event) => {
+        event.preventDefault();
+        setFormError('');
+        setIsSaving(true);
+
+        try {
+            const res = await authFetch('/rooms', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(newRoom)
+            });
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok) throw new Error(data.message || 'Unable to create room.');
+
+            setIsAddRoomOpen(false);
+            await fetchRooms();
+        } catch (err) {
+            setFormError(err.message);
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
+    const markAvailable = async (roomId) => {
+        setUpdatingRoomId(roomId);
+        try {
+            const res = await authFetch(`/rooms/${roomId}/mark-available`, { method: 'PATCH' });
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok) throw new Error(data.message || 'Unable to update room status.');
+            await fetchRooms();
+        } catch (err) {
+            window.alert(err.message);
+        } finally {
+            setUpdatingRoomId(null);
+        }
+    };
 
     // FILTERED ROOMS
     const filteredRooms = rooms.filter((room) => {
@@ -110,10 +160,13 @@ const RoomsPage = () => {
                 >
                     <button
                         className="btn btn-primary"
+                        type="button"
+                        onClick={openAddRoom}
                         style={{
                             padding: '8px 16px'
                         }}
                     >
+                        <Plus size={16} />
                         Add New Room
                     </button>
                 </div>}
@@ -326,7 +379,9 @@ const RoomsPage = () => {
                                                 room.status?.toLowerCase() ===
                                                 'available'
                                                     ? 'badge-low'
-                                                    : 'badge-high'
+                                                    : room.status?.toLowerCase() === 'cleaning'
+                                                        ? 'badge-medium'
+                                                        : 'badge-high'
                                             }`}
                                         >
                                             {room.status}
@@ -344,21 +399,25 @@ const RoomsPage = () => {
 
                                     {/* ACTION */}
                                     <td>
-                                        <button
-                                            className="btn btn-outline"
-                                            style={{
-                                                padding:
-                                                    '6px 12px',
-                                                fontSize:
-                                                    '12px'
-                                            }}
-                                            disabled={
-                                                room.status?.toLowerCase() !==
-                                                'available'
-                                            }
-                                        >
-                                            Assign Patient
-                                        </button>
+                                        {room.status?.toLowerCase() === 'cleaning' ? (
+                                            <button
+                                                className="btn btn-outline"
+                                                type="button"
+                                                onClick={() => markAvailable(room.room_id)}
+                                                disabled={updatingRoomId === room.room_id}
+                                                style={{ padding: '6px 12px', fontSize: '12px' }}
+                                            >
+                                                {updatingRoomId === room.room_id ? 'Updating...' : 'Mark Available'}
+                                            </button>
+                                        ) : (
+                                            <button
+                                                className="btn btn-outline"
+                                                style={{ padding: '6px 12px', fontSize: '12px' }}
+                                                disabled={room.status?.toLowerCase() !== 'available'}
+                                            >
+                                                Assign Patient
+                                            </button>
+                                        )}
                                     </td>
                                 </tr>
                             ))}
@@ -386,6 +445,37 @@ const RoomsPage = () => {
                     </table>
                 </div>
             </div>
+
+            {isAddRoomOpen && (
+                <div role="presentation" onMouseDown={() => !isSaving && setIsAddRoomOpen(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,.55)', zIndex: 1000, display: 'grid', placeItems: 'center', padding: 16 }}>
+                    <div className="card" role="dialog" aria-modal="true" aria-labelledby="add-room-title" onMouseDown={(event) => event.stopPropagation()} style={{ width: 'min(460px, 100%)', padding: 24 }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', gap: 16, alignItems: 'flex-start', marginBottom: 20 }}>
+                            <div>
+                                <h2 id="add-room-title" style={{ margin: 0 }}>Add New Room</h2>
+                                <p style={{ color: 'var(--text-gray)', margin: '6px 0 0' }}>Create an available room for patient assignments.</p>
+                            </div>
+                            <button type="button" aria-label="Close" onClick={() => setIsAddRoomOpen(false)} disabled={isSaving} style={{ display: 'flex', padding: 4, color: 'var(--text-gray)', background: 'transparent' }}><X size={20} /></button>
+                        </div>
+                        <form onSubmit={addRoom}>
+                            <div className="input-group">
+                                <label htmlFor="room-number">Room number</label>
+                                <input id="room-number" className="form-control" value={newRoom.roomNumber} onChange={(event) => setNewRoom({ ...newRoom, roomNumber: event.target.value })} placeholder="e.g. G-101" required autoFocus />
+                            </div>
+                            <div className="input-group">
+                                <label htmlFor="room-type">Room type</label>
+                                <select id="room-type" className="form-control" value={newRoom.type} onChange={(event) => setNewRoom({ ...newRoom, type: event.target.value })}>
+                                    {['General', 'ICU', 'Trauma', 'Cardiac', 'Emergency', 'Eye', 'Diabetes', 'Neuro', 'Ortho', 'Pediatric', 'Maternity', 'Oncology', 'ENT', 'Skin', 'Psychiatric'].map((type) => <option key={type}>{type}</option>)}
+                                </select>
+                            </div>
+                            {formError && <p style={{ color: 'var(--danger)' }} role="alert">{formError}</p>}
+                            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 20 }}>
+                                <button className="btn btn-outline" type="button" onClick={() => setIsAddRoomOpen(false)} disabled={isSaving}>Cancel</button>
+                                <button className="btn btn-primary" type="submit" disabled={isSaving}>{isSaving ? 'Creating...' : 'Create Room'}</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

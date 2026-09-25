@@ -175,18 +175,10 @@ const DashboardLayout = () => {
             )}
             <div className={`sidebar ${mobileMenuOpen ? 'mobile-open' : ''}`}>
                 <div className="sidebar-header">
-                    <div
-                        style={{
-                            color: 'var(--primary)',
-                            fontWeight: '700',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '8px'
-                        }}
-                    >
+                    <button className="hospital-brand" type="button" onClick={() => navigate('/app/dashboard')} aria-label="Go to dashboard">
                         <Activity size={18} />
                         Smart Hospital Management System
-                    </div>
+                    </button>
                 </div>
 
                 <div className="nav-menu" onClick={() => setMobileMenuOpen(false)}>
@@ -318,6 +310,10 @@ const DashboardLayout = () => {
                             aria-expanded={mobileMenuOpen}
                         >
                             <Menu size={20} />
+                        </button>
+                        <button className="hospital-brand mobile-hospital-brand" type="button" onClick={() => navigate('/app/dashboard')} aria-label="Go to dashboard">
+                            <Activity size={18} />
+                            <span>Smart Hospital Management System</span>
                         </button>
                     </div>
 

@@ -365,6 +365,26 @@ button {
   border-bottom: 1px solid var(--border);
 }
 
+.hospital-brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  padding: 0;
+  background: transparent;
+  color: var(--primary);
+  font-weight: 700;
+  text-align: left;
+}
+
+.hospital-brand:hover {
+  color: var(--primary-hover);
+}
+
+.mobile-hospital-brand {
+  display: none;
+}
+
 .nav-menu {
   flex: 1;
   padding: 20px 12px;
@@ -1042,6 +1062,13 @@ button {
     display: inline-flex;
   }
 
+  .mobile-hospital-brand {
+    display: flex;
+    max-width: calc(100vw - 176px);
+    font-size: 12px;
+    line-height: 1.2;
+  }
+
   .sidebar .nav-item {
     min-height: 44px;
   }
@@ -1131,6 +1158,13 @@ button {
 
   .topbar-right {
     gap: 12px !important;
+  }
+
+  .mobile-hospital-brand span {
+    display: -webkit-box;
+    overflow: hidden;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
   }
 
   .user-profile-details {
