@@ -879,6 +879,33 @@ app.get("/users", verifyToken, requireRole("admin"), async (req, res) => {
   }
 });
 
+app.post("/api/admin/force-reset", verifyToken, requireRole("admin"), async (req, res) => {
+  try {
+    const userId = Number(req.body.userId);
+    const newPassword = req.body.newPassword;
+    const validPassword = typeof newPassword === "string" && newPassword.length >= 8 && /[A-Za-z]/.test(newPassword) && /\d/.test(newPassword);
+
+    if (!Number.isInteger(userId) || userId <= 0 || !validPassword) {
+      return res.status(400).json({ message: "Provide a valid user ID and a password with at least 8 characters, including a letter and a number." });
+    }
+
+    const [users] = await db.execute("SELECT user_id, name, is_active FROM users WHERE user_id = $1", [userId]);
+    const target = users[0];
+    if (!target) return res.status(404).json({ message: "User not found." });
+    if (!target.is_active) return res.status(400).json({ message: "Cannot reset the password of a deactivated account." });
+
+    const hashedPassword = await bcrypt.hash(newPassword, 12);
+    await db.execute(
+      "UPDATE users SET password = $1, must_change_password = TRUE WHERE user_id = $2",
+      [hashedPassword, userId]
+    );
+    res.json({ message: "Temporary password updated.", user: { user_id: target.user_id, name: target.name } });
+  } catch (err) {
+    console.error("Admin password reset error:", err);
+    res.status(500).json({ message: "Unable to reset the password." });
+  }
+});
+
 app.put("/users/:user_id/role", verifyToken, requireRole("admin"), async (req, res) => {
   try {
     const userId = Number(req.params.user_id);

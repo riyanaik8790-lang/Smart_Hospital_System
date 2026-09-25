@@ -5,8 +5,17 @@ import { authFetch } from '../api/authFetch';
 import Avatar from '../components/Avatar';
 
 const DEPARTMENTS = [
-    'General', 'Cardiology', 'Neurology', 'Orthopedic', 'Emergency'
-
+    'General Medicine',
+    'Cardiology',
+    'Neurology',
+    'Orthopedics',
+    'Emergency / Trauma',
+    'Pediatrics',
+    'Oncology',
+    'Gynecology & Obstetrics',
+    'Dermatology',
+    'Psychiatry',
+    'ENT (Ear, Nose, Throat)'
 ];
 const PATIENT_STATUSES = ['All', 'Admitted', 'Discharged', 'OPD'];
 
@@ -16,7 +25,7 @@ const PatientsPage = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedStatus, setSelectedStatus] = useState('All');
     const [formData, setFormData] = useState({
-        name: '', age: '', department: 'General', heartRate: ''
+        name: '', age: '', department: '', heartRate: ''
     });
     const [notification, setNotification] = useState(null);
     const [loading, setLoading] = useState(false);
@@ -113,7 +122,7 @@ const PatientsPage = () => {
             });
             const data = await res.text();
             showNotification(data, data.toLowerCase().includes('no') ? 'error' : 'success');
-            if (!data.toLowerCase().includes('no')) setFormData({ name: '', age: '', department: 'General', heartRate: '' });
+            if (!data.toLowerCase().includes('no')) setFormData({ name: '', age: '', department: '', heartRate: '' });
             fetchPatients();
         } catch (err) {
             showNotification('Failed to add patient', 'error');
@@ -134,7 +143,7 @@ const PatientsPage = () => {
             });
             const data = await res.text();
             showNotification(data, data.toLowerCase().includes('no') ? 'error' : 'success');
-            if (!data.toLowerCase().includes('no')) setFormData({ name: '', age: '', department: 'General', heartRate: '' });
+            if (!data.toLowerCase().includes('no')) setFormData({ name: '', age: '', department: '', heartRate: '' });
             fetchPatients();
         } catch (err) {
             showNotification('Failed to process emergency admit', 'error');
@@ -256,7 +265,8 @@ const PatientsPage = () => {
                             </div>
                             <div className="input-group">
                                 <label>Department *</label>
-                                <select name="department" value={formData.department} onChange={handleInputChange} className="form-control">
+                                <select name="department" value={formData.department} onChange={handleInputChange} className="form-control" required>
+                                    <option value="" disabled>Select Department</option>
                                     {DEPARTMENTS.map(d => <option key={d} value={d}>{d}</option>)}
                                 </select>
                             </div>

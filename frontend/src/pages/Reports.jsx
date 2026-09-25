@@ -12,9 +12,20 @@ import {
 import { ChevronDown, Download } from "lucide-react";
 import { authFetch } from '../api/authFetch';
 
+const WEEKLY_TREND_DATA = [
+  { day: "Mon", admitted: 2, busyDoctors: 2, discharged: 0 },
+  { day: "Tue", admitted: 1, busyDoctors: 1, discharged: 0 },
+  { day: "Wed", admitted: 3, busyDoctors: 3, discharged: 1 },
+  { day: "Thu", admitted: 4, busyDoctors: 4, discharged: 1 },
+  { day: "Fri", admitted: 5, busyDoctors: 5, discharged: 2 },
+  { day: "Sat", admitted: 4, busyDoctors: 4, discharged: 3 },
+  { day: "Sun", admitted: 2, busyDoctors: 2, discharged: 4 }
+];
+
 const Reports = () => {
   const [data, setData] = useState([]);
   const [stats, setStats] = useState({});
+  const [dateRange, setDateRange] = useState({ startDate: null, endDate: null });
   const [isExportOpen, setIsExportOpen] = useState(false);
   const [exporting, setExporting] = useState("");
   const [exportError, setExportError] = useState("");
@@ -35,62 +46,52 @@ const Reports = () => {
     window.setTimeout(() => URL.revokeObjectURL(url), 1000);
   };
 
+  const chartTitle = (() => {
+    if (!dateRange.startDate || !dateRange.endDate) return "Hospital Trends";
+    const formatDate = (date) => new Date(`${date}T00:00:00`).toLocaleDateString(undefined, {
+      month: "short", day: "2-digit", year: "numeric"
+    });
+    return `Trends: ${formatDate(dateRange.startDate)} - ${formatDate(dateRange.endDate)}`;
+  })();
+
   useEffect(() => {
     authFetch("/api/efficiency")
       .then((res) => res.json())
       .then((res) => {
         setStats(res);
-
-        // CUSTOM WEEKLY TREND DATA
-        setData([
-          {
-            day: "Mon",
-            admitted: 2,
-            busyDoctors: 2,
-            discharged: 0
-          },
-          {
-            day: "Tue",
-            admitted: 1,
-            busyDoctors: 1,
-            discharged: 0
-          },
-          {
-            day: "Wed",
-            admitted: 3,
-            busyDoctors: 3,
-            discharged: 1
-          },
-          {
-            day: "Thu",
-            admitted: 4,
-            busyDoctors: 4,
-            discharged: 1
-          },
-          {
-            day: "Fri",
-            admitted: 5,
-            busyDoctors: 5,
-            discharged: 2
-          },
-          {
-            day: "Sat",
-            admitted: 4,
-            busyDoctors: 4,
-            discharged: 3
-          },
-          {
-            day: "Sun",
-            admitted: 2,
-            busyDoctors: 2,
-            discharged: 4
-          }
-        ]);
       })
       .catch((err) =>
         console.error("Error loading report:", err)
       );
   }, []);
+
+  useEffect(() => {
+    let isCurrent = true;
+
+    const loadTrends = async () => {
+      // Replace this fallback with the API request below once the backend has
+      // a date-aware trends endpoint. The selected values are YYYY-MM-DD.
+      if (dateRange.startDate && dateRange.endDate) {
+        // const params = new URLSearchParams({
+        //   startDate: dateRange.startDate,
+        //   endDate: dateRange.endDate
+        // });
+        // const response = await authFetch(`/api/reports/trends?${params}`);
+        // if (!response.ok) throw new Error('Unable to load trends.');
+        // const trends = await response.json();
+        // if (isCurrent) setData(trends); // [{ day, admitted, busyDoctors, discharged }]
+
+        // Mock/filtering fallback while the data source is static.
+        if (isCurrent) setData(WEEKLY_TREND_DATA);
+        return;
+      }
+
+      if (isCurrent) setData(WEEKLY_TREND_DATA);
+    };
+
+    loadTrends().catch((error) => console.error("Error loading date-range trends:", error));
+    return () => { isCurrent = false; };
+  }, [dateRange]);
 
   const handleExportCSV = () => {
     setExporting("csv");
@@ -167,7 +168,30 @@ const Reports = () => {
       >
        Smart Hospital Performance Report
       </h2>
-        <div className="efficiency-export-menu" style={{ marginBottom: "20px" }}>
+        <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "flex-end", alignItems: "flex-end", gap: "12px", marginBottom: "20px" }}>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: "8px", alignItems: "flex-end" }} aria-label="Report date range">
+            <label className="input-group" style={{ margin: 0 }}>
+              <span className="help-text">Start date</span>
+              <input
+                type="date"
+                className="form-control"
+                value={dateRange.startDate || ""}
+                max={dateRange.endDate || undefined}
+                onChange={(event) => setDateRange((current) => ({ ...current, startDate: event.target.value || null }))}
+              />
+            </label>
+            <label className="input-group" style={{ margin: 0 }}>
+              <span className="help-text">End date</span>
+              <input
+                type="date"
+                className="form-control"
+                value={dateRange.endDate || ""}
+                min={dateRange.startDate || undefined}
+                onChange={(event) => setDateRange((current) => ({ ...current, endDate: event.target.value || null }))}
+              />
+            </label>
+          </div>
+        <div className="efficiency-export-menu">
           <button
             type="button"
             className="btn btn-primary"
@@ -187,6 +211,7 @@ const Reports = () => {
               <button type="button" onClick={handleExportPDF} role="menuitem"><Download size={16} /> {exporting === "pdf" ? "Preparing PDF..." : "Export as PDF"}</button>
             </div>
           )}
+        </div>
         </div>
       </div>
 
@@ -247,7 +272,7 @@ const Reports = () => {
             color: "#111827"
           }}
         >
-          Weekly Hospital Trends
+          {chartTitle}
         </h3>
 
         <ResponsiveContainer

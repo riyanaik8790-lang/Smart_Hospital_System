@@ -193,13 +193,15 @@ const RoomsPage = () => {
             {/* MAIN CARD */}
             <div className="card">
                 {/* SEARCH + FILTER */}
+                <div className="flex flex-col gap-5" style={{ padding: '16px' }}>
                 <div
-                    className="card-header filter-bar"
+                    className="filter-bar bg-white border rounded-lg shadow-sm"
                     style={{
                         display: 'flex',
                         gap: '16px',
-                        background:
-                            'var(--surface-hover)'
+                        padding: '16px',
+                        flexWrap: 'wrap',
+                        alignItems: 'center'
                     }}
                 >
                     {/* SEARCH */}
@@ -274,7 +276,7 @@ const RoomsPage = () => {
                     </button>
                 </div>
 
-                <div className="room-status-tabs" aria-label="Filter rooms by status">
+                <div className="room-status-tabs flex flex-wrap items-center gap-3" aria-label="Filter rooms by status">
                     {ROOM_STATUSES.map((status) => (
                         <button
                             key={status}
@@ -292,6 +294,7 @@ const RoomsPage = () => {
                             {status}
                         </button>
                     ))}
+                </div>
                 </div>
 
                 {/* TABLE */}

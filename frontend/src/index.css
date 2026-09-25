@@ -511,7 +511,7 @@ button {
 .room-status-tabs {
   display: flex;
   gap: 8px;
-  padding: 0 16px 16px;
+  padding: 0;
 }
 
 .room-status-tabs button {
@@ -1109,10 +1109,8 @@ button {
   }
 
   .room-status-tabs {
-    overflow-x: auto;
-    flex-wrap: nowrap;
-    -webkit-overflow-scrolling: touch;
-    scrollbar-width: thin;
+    overflow: visible;
+    flex-wrap: wrap;
   }
 }
 
@@ -1320,9 +1318,9 @@ button {
   .room-status-tabs {
     display: flex !important;
     grid-template-columns: none;
-    gap: 8px !important;
-    padding: 0 16px 16px;
-    overflow-x: auto;
+    gap: 12px !important;
+    padding: 0;
+    overflow: visible;
     flex-wrap: nowrap;
   }
 

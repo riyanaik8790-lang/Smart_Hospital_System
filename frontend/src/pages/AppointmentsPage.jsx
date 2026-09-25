@@ -79,8 +79,8 @@ const AppointmentsPage = () => {
       (selectedStatus === 'Upcoming' ? appointment.status === 'Scheduled' : appointment.status === selectedStatus);
     return matchesSearch && matchesStatus;
   });
-  const phoneError = formData.patient_phone && !/^\d{10}$/.test(formData.patient_phone)
-    ? 'Phone number must be 10 digits'
+  const phoneError = !/^\d{10}$/.test(formData.patient_phone)
+    ? 'Phone number must be exactly 10 digits'
     : '';
   const selectedDoctor = doctors.find((doctor) => String(doctor.doctor_id) === String(formData.doctor_id));
 
@@ -201,7 +201,10 @@ const AppointmentsPage = () => {
   const handleBook = async (event) => {
     event.preventDefault();
     setPhoneTouched(true);
-    if (phoneError) return;
+    if (formData.patient_phone.length !== 10) {
+      notify('Phone number must be exactly 10 digits', 'error');
+      return;
+    }
 
     if (!APPOINTMENT_TIME_SLOTS.includes(formData.appointment_time)) {
       notify('Please choose an available appointment time.', 'error');
@@ -340,6 +343,9 @@ const AppointmentsPage = () => {
                     type="tel"
                     inputMode="numeric"
                     maxLength={10}
+                    minLength={10}
+                    pattern="[0-9]{10}"
+                    required
                     aria-invalid={Boolean(phoneError)}
                     aria-describedby="patient-phone-error"
                     style={{ borderColor: phoneTouched && phoneError ? 'var(--danger)' : undefined }}

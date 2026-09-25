@@ -9,6 +9,7 @@ const LoginPage = () => {
     const [showPassword, setShowPassword] = useState(false);
 
     const [error, setError] = useState('');
+    const [message, setMessage] = useState('');
 
     const handleLogin = async (e) => {
         e.preventDefault();
@@ -40,6 +41,33 @@ const LoginPage = () => {
 
     };
 
+    const handleForgotSubmit = async () => {
+        setError('');
+        setMessage('');
+
+        if (!email.trim()) {
+            setError('Please enter your staff email first.');
+            return;
+        }
+
+        try {
+            const response = await fetch('/api/request-reset', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email: email.trim() })
+            });
+            const data = await response.json().catch(() => ({}));
+
+            if (!response.ok) {
+                throw new Error(data.message || 'Unable to send the password reset request.');
+            }
+
+            setMessage('Password reset request sent to the Administrator.');
+        } catch (requestError) {
+            setError(requestError.message || 'Unable to send the password reset request.');
+        }
+    };
+
     return (
         <div className="auth-page">
             <div className="auth-card">
@@ -61,6 +89,12 @@ const LoginPage = () => {
                     </div>
                 )}
 
+                {message && (
+                    <div className="alert alert-success" role="status" style={{ marginBottom: '20px', padding: '10px', fontSize: '13px' }}>
+                        {message}
+                    </div>
+                )}
+
 
                 <form onSubmit={handleLogin}>
                     <div className="input-group">
@@ -77,7 +111,13 @@ const LoginPage = () => {
                     <div className="input-group">
                         <div className="flex justify-between w-full">
                             <label className="input-label">Password</label>
-                            <a href="#" style={{ fontSize: '13px' }}>Forgot?</a>
+                            <button
+                                type="button"
+                                onClick={handleForgotSubmit}
+                                style={{ fontSize: '13px', color: 'var(--primary)', background: 'transparent', padding: 0 }}
+                            >
+                                Forgot?
+                            </button>
                         </div>
                         <div style={{ position: 'relative' }}>
                             <input
