@@ -583,13 +583,12 @@ button {
 .stat-card {
   background: var(--surface);
   border-radius: var(--radius-lg);
-  min-height: 120px;
-  padding: 24px;
+  padding: 20px;
   box-shadow: var(--shadow-sm);
   border: 1px solid var(--border);
   display: flex;
   align-items: center;
-  gap: 18px;
+  gap: 16px;
   transition: all 0.2s;
 }
 
@@ -599,13 +598,13 @@ button {
 }
 
 .stat-icon {
-  width: 52px;
-  height: 52px;
+  width: 48px;
+  height: 48px;
   border-radius: var(--radius-md);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 26px;
+  font-size: 24px;
   background: var(--primary-light);
   color: var(--primary);
 }
@@ -622,7 +621,7 @@ button {
 
 .stat-info .stat-value,
 .stat-info .value {
-  font-size: 32px;
+  font-size: 28px;
   font-weight: 700;
   color: var(--text-dark);
 }
@@ -1232,13 +1231,12 @@ button {
   }
 
   .stat-card {
-    min-height: 112px;
-    padding: 20px;
+    padding: 16px;
   }
 
   .stat-info .stat-value,
   .stat-info .value {
-    font-size: 28px;
+    font-size: 24px;
   }
 
   .section-header,
