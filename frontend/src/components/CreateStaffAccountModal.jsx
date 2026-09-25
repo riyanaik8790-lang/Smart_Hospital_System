@@ -26,6 +26,7 @@ export default function CreateStaffAccountModal({ onClose, onCreate }) {
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
   const [created, setCreated] = useState(null);
+  const [copyMessage, setCopyMessage] = useState('');
 
   const submit = async (event) => {
     event.preventDefault();
@@ -38,7 +39,13 @@ export default function CreateStaffAccountModal({ onClose, onCreate }) {
   };
 
   const copyPassword = async () => {
-    await navigator.clipboard.writeText(created.temporaryPassword);
+    try {
+      await navigator.clipboard.writeText(created.temporaryPassword);
+      setCopyMessage('Temporary password copied to clipboard.');
+    } catch (copyError) {
+      console.error('Unable to copy temporary password:', copyError);
+      setCopyMessage('Unable to copy the password. Please copy it manually.');
+    }
   };
 
   return <div role="presentation" onMouseDown={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,.55)', zIndex: 1000, display: 'grid', placeItems: 'center', padding: 16 }}>
@@ -47,6 +54,7 @@ export default function CreateStaffAccountModal({ onClose, onCreate }) {
         <h2 id="create-staff-title" style={{ marginTop: 0 }}>Staff account created</h2>
         <p style={{ color: 'var(--text-gray)' }}>Share this temporary password securely with {created.user.name}. It will not be shown again after this window is closed.</p>
         <div className="input-group"><label htmlFor="generated-staff-password">Temporary Password</label><div style={{ position: 'relative' }}><input id="generated-staff-password" className="form-control" readOnly type={showPassword ? 'text' : 'password'} value={created.temporaryPassword} style={{ paddingRight: 76 }} /><button type="button" onClick={() => setShowPassword(!showPassword)} aria-label={showPassword ? 'Hide password' : 'Show password'} style={{ position: 'absolute', right: 40, top: '50%', transform: 'translateY(-50%)', display: 'flex', background: 'transparent', color: 'var(--text-gray)' }}>{showPassword ? <EyeOff size={18} /> : <Eye size={18} />}</button><button type="button" onClick={copyPassword} aria-label="Copy temporary password" style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', display: 'flex', background: 'transparent', color: 'var(--text-gray)' }}><Copy size={18} /></button></div></div>
+        {copyMessage && <p className="help-text" role="status" style={{ color: copyMessage.startsWith('Unable') ? 'var(--danger)' : 'var(--success, #15803d)' }}>{copyMessage}</p>}
         <p className="help-text">They will be required to set a new password immediately after their first sign-in.</p>
         <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 20 }}><button type="button" className="btn btn-primary" onClick={onClose}>Done</button></div>
       </> : <>

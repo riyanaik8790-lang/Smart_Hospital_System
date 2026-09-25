@@ -237,20 +237,33 @@ const AppointmentsPage = () => {
     console.log('Editing appointment:', id);
   };
 
+  const updateAppointmentStatus = async (id, status) => {
+    try {
+      const response = await fetch(`/appointments/${id}`, {
+        method: 'PUT',
+        headers: authHeaders(),
+        body: JSON.stringify({ status })
+      });
+      const updatedAppointment = await response.json();
+      if (!response.ok) throw new Error(updatedAppointment.message || 'Unable to update appointment status.');
+
+      setAppointments((currentAppointments) => currentAppointments.map((appointment) =>
+        appointment.appointment_id === id
+          ? { ...appointment, status: updatedAppointment.status }
+          : appointment
+      ));
+      notify(`Appointment marked as ${updatedAppointment.status}.`);
+    } catch (error) {
+      notify(error.message, 'error');
+    }
+  };
+
   const handleCancel = (id) => {
-    setAppointments((currentAppointments) => currentAppointments.map((appointment) =>
-      appointment.appointment_id === id
-        ? { ...appointment, status: 'Cancelled' }
-        : appointment
-    ));
+    updateAppointmentStatus(id, 'Cancelled');
   };
 
   const handleMarkCompleted = (id) => {
-    setAppointments((currentAppointments) => currentAppointments.map((appointment) =>
-      appointment.appointment_id === id
-        ? { ...appointment, status: 'Completed' }
-        : appointment
-    ));
+    updateAppointmentStatus(id, 'Completed');
   };
 
   return (

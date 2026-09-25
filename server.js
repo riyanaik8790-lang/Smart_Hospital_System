@@ -636,7 +636,7 @@ app.get("/appointments", verifyToken, async (req, res) => {
   }
 });
 
-app.put("/appointments/:appointment_id", verifyToken, requireRole("admin", "doctor"), async (req, res) => {
+app.put("/appointments/:appointment_id", verifyToken, requireRole("admin", "doctor", "nurse", "receptionist"), async (req, res) => {
   try {
     const appointmentId = Number(req.params.appointment_id);
     const allowedStatuses = new Set(["Scheduled", "Completed", "Cancelled", "No-show"]);
