@@ -1,51 +1,26 @@
-import React, { useState } from 'react';
-import { AnimatePresence, motion } from 'framer-motion';
-import { BedDouble, CalendarCheck, Stethoscope, UsersRound } from 'lucide-react';
-import DashboardSidebar from '../components/hospital-dashboard/DashboardSidebar';
-import KpiCard from '../components/hospital-dashboard/KpiCard';
-import RecentActivityTable from '../components/hospital-dashboard/RecentActivityTable';
-import BedGrid from '../components/hospital-dashboard/BedGrid';
+import React from 'react';
+import { AlertTriangle, BedDouble, FileText, Plus, Stethoscope, UsersRound } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
-const sampleStats = {
-  Today: {
-    totalPatients: 48,
-    admittedPatients: 19,
-    criticalPatients: 4,
-    availableDoctors: 35,
-    availableRooms: 50,
-    emergencyAvailable: 4
-  },
-  'This Week': {
-    totalPatients: 286,
-    admittedPatients: 74,
-    criticalPatients: 12,
-    availableDoctors: 31,
-    availableRooms: 38,
-    emergencyAvailable: 2
-  },
-  'This Month': {
-    totalPatients: 1_142,
-    admittedPatients: 218,
-    criticalPatients: 27,
-    availableDoctors: 28,
-    availableRooms: 24,
-    emergencyAvailable: 1
-  }
-};
+const metrics = [
+  { label: 'Total Patients', value: '1,248', detail: '+12 today', icon: UsersRound, tone: 'bg-sky-100 text-sky-700' },
+  { label: 'Critical Cases', value: '18', detail: '4 need attention', icon: AlertTriangle, tone: 'bg-rose-100 text-rose-700' },
+  { label: 'Available Doctors', value: '35', detail: '6 on call', icon: Stethoscope, tone: 'bg-violet-100 text-violet-700' },
+  { label: 'Available Rooms', value: '50', detail: '72% capacity free', icon: BedDouble, tone: 'bg-emerald-100 text-emerald-700' },
+];
+const queue = [
+  { patient: 'Ananya Sharma', department: 'Cardiology', priority: 'Critical', wait: '08 min' },
+  { patient: 'Rahul Verma', department: 'Emergency', priority: 'High', wait: '16 min' },
+  { patient: 'Meera Iyer', department: 'Orthopaedics', priority: 'Medium', wait: '24 min' },
+  { patient: 'Arjun Patel', department: 'General Medicine', priority: 'Low', wait: '31 min' },
+];
+const priorityStyle = { Critical: 'bg-rose-100 text-rose-700', High: 'bg-amber-100 text-amber-700', Medium: 'bg-sky-100 text-sky-700', Low: 'bg-emerald-100 text-emerald-700' };
 
-const DashboardPage = () => {
-  const [activeTab, setActiveTab] = useState('overview');
-  const stats = sampleStats.Today;
-  const content = {
-    overview: <><div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3"><KpiCard label="Total Patients" value={stats.totalPatients} detail="12 admissions today" icon={UsersRound} tone="bg-sky-100 text-sky-700" /><KpiCard label="Available Beds" value={stats.availableRooms} detail="72% capacity available" icon={BedDouble} tone="bg-emerald-100 text-emerald-700" /><KpiCard label="Doctors on Duty" value={stats.availableDoctors} detail="4 currently in surgery" icon={Stethoscope} tone="bg-violet-100 text-violet-700" /></div><div className="mt-5 grid gap-5 xl:grid-cols-[1.2fr_.8fr]"><RecentActivityTable /><BedGrid /></div></>,
-    patients: <RecentActivityTable />,
-    appointments: <section className="rounded-2xl border border-slate-200 bg-white p-8 text-center shadow-sm"><CalendarCheck className="mx-auto text-sky-600" size={32} /><h2 className="mt-3 font-semibold text-slate-900">Appointments</h2><p className="mt-1 text-sm text-slate-500">Today: 42 appointments scheduled, 31 checked in.</p></section>,
-    beds: <BedGrid />,
-  };
-
-  return (
-    <div className="overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 shadow-sm"><div className="flex min-h-[calc(100vh-10rem)] flex-col md:flex-row"><DashboardSidebar activeTab={activeTab} onTabChange={setActiveTab} /><main className="min-w-0 flex-1 p-4 sm:p-6"><div className="mb-6"><p className="text-sm font-medium text-sky-700">Friday, September 25</p><h1 className="mt-1 text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">Hospital Operations</h1><p className="mt-1 text-sm text-slate-500">A real-time snapshot of patient care and capacity.</p></div><AnimatePresence mode="wait"><motion.div key={activeTab} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.2 }}>{content[activeTab]}</motion.div></AnimatePresence></main></div></div>
-  );
-};
-
-export default DashboardPage;
+export default function DashboardPage() {
+  const navigate = useNavigate();
+  return <main className="mx-auto w-full max-w-7xl space-y-6 px-4 py-5 sm:px-6 lg:px-8">
+    <header className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between"><div><h1 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">Dashboard Overview</h1><p className="mt-1 text-sm text-slate-500">Monitor hospital capacity, patients, and care priorities.</p></div><div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap"><button type="button" onClick={() => navigate('/app/patients')} className="inline-flex items-center justify-center gap-2 rounded-lg bg-sky-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-sky-700"><Plus size={17} /> Add Patient</button><button type="button" onClick={() => navigate('/app/appointments')} className="inline-flex items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50"><Plus size={17} /> Schedule</button><button type="button" onClick={() => navigate('/app/reports')} className="inline-flex items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50"><FileText size={17} /> Generate Report</button></div></header>
+    <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:gap-6 lg:grid-cols-4" aria-label="Hospital metrics">{metrics.map(({ label, value, detail, icon: Icon, tone }) => <article key={label} className="rounded-xl bg-white p-4 shadow-sm ring-1 ring-slate-200 transition duration-200 hover:-translate-y-0.5 hover:shadow-md md:p-6"><div className="flex items-start justify-between gap-3"><div><p className="text-sm font-medium text-slate-500">{label}</p><p className="mt-2 text-3xl font-bold tracking-tight text-slate-900">{value}</p><p className="mt-2 text-xs font-medium text-slate-500">{detail}</p></div><span className={`grid h-10 w-10 shrink-0 place-items-center rounded-lg ${tone}`}><Icon size={20} /></span></div></article>)}</section>
+    <section className="grid grid-cols-1 gap-6 lg:grid-cols-3"><article className="overflow-hidden rounded-xl bg-white shadow-sm ring-1 ring-slate-200 lg:col-span-2"><div className="flex items-center justify-between border-b border-slate-100 px-4 py-4 md:px-6"><div><h2 className="font-semibold text-slate-900">Priority Queue</h2><p className="mt-0.5 text-sm text-slate-500">Patients waiting for clinical attention</p></div><button type="button" onClick={() => navigate('/app/queue')} className="text-sm font-semibold text-sky-700 hover:text-sky-800">View all</button></div><div className="overflow-x-auto"><table className="w-full min-w-[620px] text-left text-sm"><thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500"><tr><th className="px-4 py-3 font-semibold md:px-6">Patient</th><th className="px-4 py-3 font-semibold">Department</th><th className="px-4 py-3 font-semibold">Priority</th><th className="px-4 py-3 font-semibold md:px-6">Waiting</th></tr></thead><tbody className="divide-y divide-slate-100">{queue.map((item) => <tr key={item.patient} className="hover:bg-slate-50"><td className="whitespace-nowrap px-4 py-4 font-medium text-slate-800 md:px-6">{item.patient}</td><td className="whitespace-nowrap px-4 py-4 text-slate-600">{item.department}</td><td className="px-4 py-4"><span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${priorityStyle[item.priority]}`}>{item.priority}</span></td><td className="whitespace-nowrap px-4 py-4 text-slate-500 md:px-6">{item.wait}</td></tr>)}</tbody></table></div></article><aside className="rounded-xl bg-white p-4 shadow-sm ring-1 ring-slate-200 md:p-6"><h2 className="font-semibold text-slate-900">Patient Influx</h2><p className="mt-1 text-sm text-slate-500">Hourly arrivals today</p><div className="mt-6 grid h-56 place-items-center rounded-lg border border-dashed border-slate-300 bg-slate-50 text-center"><div><svg width="82" height="36" viewBox="0 0 82 36" fill="none" aria-hidden="true"><path d="M2 27L16 20L28 24L41 9L53 18L65 5L80 12" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="text-sky-500" /><path d="M2 34H80" stroke="currentColor" strokeWidth="2" className="text-slate-200" /></svg><p className="mt-2 text-sm font-medium text-slate-600">Chart placeholder</p><p className="mt-1 text-xs text-slate-400">Connect reporting data to display trends.</p></div></div></aside></section>
+  </main>;
+}
