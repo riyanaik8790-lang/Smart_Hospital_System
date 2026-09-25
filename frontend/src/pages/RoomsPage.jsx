@@ -10,11 +10,12 @@ import {
 } from 'lucide-react';
 import { authFetch } from '../api/authFetch';
 import Avatar from '../components/Avatar';
+import { useRoomData } from '../contexts/RoomDataContext';
 
 const ROOM_STATUSES = ['All', 'Available', 'Occupied', 'Cleaning'];
 
 const RoomsPage = () => {
-    const [rooms, setRooms] = useState([]);
+    const { rooms, refreshRooms, dashboardData } = useRoomData();
     const canAddRoom = (localStorage.getItem('role') || '').toLowerCase() === 'admin';
 
     // NEW STATES
@@ -27,30 +28,6 @@ const RoomsPage = () => {
     const [formError, setFormError] = useState('');
     const [isSaving, setIsSaving] = useState(false);
     const [updatingRoomId, setUpdatingRoomId] = useState(null);
-
-    const fetchRooms = async () => {
-        try {
-            const res = await authFetch('/rooms');
-
-            if (res.ok) {
-                const data = await res.json();
-
-                if (Array.isArray(data)) {
-                    setRooms(data);
-                }
-            }
-        } catch (err) {
-            console.error("Error fetching rooms:", err);
-        }
-    };
-
-    useEffect(() => {
-        fetchRooms();
-
-        const interval = setInterval(fetchRooms, 3000);
-
-        return () => clearInterval(interval);
-    }, []);
 
     useEffect(() => {
         const timeout = window.setTimeout(() => setSearchTerm(searchInput.trim()), 250);
@@ -78,7 +55,7 @@ const RoomsPage = () => {
             if (!res.ok) throw new Error(data.message || 'Unable to create room.');
 
             setIsAddRoomOpen(false);
-            await fetchRooms();
+            await refreshRooms();
         } catch (err) {
             setFormError(err.message);
         } finally {
@@ -92,7 +69,7 @@ const RoomsPage = () => {
             const res = await authFetch(`/rooms/${roomId}/mark-available`, { method: 'PATCH' });
             const data = await res.json().catch(() => ({}));
             if (!res.ok) throw new Error(data.message || 'Unable to update room status.');
-            await fetchRooms();
+            await refreshRooms();
         } catch (err) {
             window.alert(err.message);
         } finally {
@@ -125,17 +102,7 @@ const RoomsPage = () => {
     });
 
     // STATS
-    const totalRooms = rooms.length;
-
-    const availableRooms = rooms.filter(
-        (room) =>
-            room.status?.toLowerCase() === 'available'
-    ).length;
-
-    const occupiedRooms = rooms.filter(
-        (room) =>
-            room.status?.toLowerCase() === 'occupied'
-    ).length;
+    const { totalRooms, availableRooms, occupiedRooms } = dashboardData;
 
     return (
         <div className="rooms-page">

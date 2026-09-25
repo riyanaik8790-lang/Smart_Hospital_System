@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Outlet, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { authFetch } from '../api/authFetch';
 import Avatar from '../components/Avatar';
+import { RoomDataProvider } from '../contexts/RoomDataContext';
 import {
     LayoutDashboard,
     Users,
@@ -162,6 +163,7 @@ const DashboardLayout = () => {
     };
 
     return (
+        <RoomDataProvider>
         <div className="app-container">
 
             {/* SIDEBAR */}
@@ -499,6 +501,7 @@ const DashboardLayout = () => {
                 </div>
             </div>
         </div>
+        </RoomDataProvider>
     );
 };
 
