@@ -7,6 +7,7 @@ import {
     Clock
 } from 'lucide-react';
 import { authFetch } from '../api/authFetch';
+import Avatar from '../components/Avatar';
 
 const ROOM_STATUSES = ['All', 'Available', 'Occupied', 'Cleaning'];
 
@@ -281,6 +282,7 @@ const RoomsPage = () => {
                                 <th>Room Number</th>
                                 <th>Type</th>
                                 <th>Status</th>
+                                <th>Assigned Patient</th>
                                 <th>Action</th>
                             </tr>
                         </thead>
@@ -331,6 +333,15 @@ const RoomsPage = () => {
                                         </span>
                                     </td>
 
+                                    <td>
+                                        {room.patient_name ? (
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                <Avatar name={room.patient_name} size="sm" />
+                                                {room.patient_name}
+                                            </div>
+                                        ) : '—'}
+                                    </td>
+
                                     {/* ACTION */}
                                     <td>
                                         <button
@@ -357,7 +368,7 @@ const RoomsPage = () => {
                                 0 && (
                                 <tr>
                                     <td
-                                        colSpan="4"
+                                        colSpan="5"
                                         style={{
                                             textAlign:
                                                 'center',

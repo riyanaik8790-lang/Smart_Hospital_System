@@ -873,7 +873,12 @@ app.get("/doctors", verifyToken, async (req, res) => {
 
 app.get("/rooms", verifyToken, async (req, res) => {
   try {
-    const [result] = await db.execute("SELECT * FROM rooms");
+    const [result] = await db.execute(`
+      SELECT r.*, p.name AS patient_name
+      FROM rooms r
+      LEFT JOIN patients p ON p.room_id = r.room_id AND p.status != 'Discharged'
+      ORDER BY r.room_id ASC
+    `);
     res.json(result);
   } catch (err) {
     res.status(500).json(err);

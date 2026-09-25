@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Search, Phone, Mail, Stethoscope, Star, ChevronDown, ChevronUp } from 'lucide-react';
 import { authFetch } from '../api/authFetch';
+import Avatar from '../components/Avatar';
 
 const SPECIALTIES = [
     'All specialities',
@@ -80,9 +81,6 @@ const DoctorsPage = () => {
         return { bg: '#f9fafb', color: '#6b7280', dot: '#9ca3af' };
     };
 
-    const getInitials = (name) =>
-        name ? name.replace('Dr. ', '').split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() : 'DR';
-
     return (
         <>
             <div className="page-header">
@@ -153,14 +151,7 @@ const DoctorsPage = () => {
                     return (
                         <div key={doctor.doctor_id} className="card" style={{ padding: '16px', border: '1px solid var(--border)' }}>
                             <div style={{ display: 'flex', gap: '12px', alignItems: 'center', marginBottom: '12px' }}>
-                                <div style={{
-                                    width: '48px', height: '48px', borderRadius: '50%',
-                                    background: 'var(--primary-light)', color: 'var(--primary)',
-                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                    fontWeight: 700, fontSize: '14px', flexShrink: 0
-                                }}>
-                                    {getInitials(doctor.name)}
-                                </div>
+                                <Avatar name={doctor.name} size="md" />
                                 <div style={{ flex: 1, minWidth: 0 }}>
                                     <h3 style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-dark)', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                                         {doctor.name}

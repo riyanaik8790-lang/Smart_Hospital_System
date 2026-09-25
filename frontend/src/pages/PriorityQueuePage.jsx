@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { AlertTriangle, Clock, Activity, Heart, ArrowRight } from 'lucide-react';
 import { authFetch } from '../api/authFetch';
+import Avatar from '../components/Avatar';
 
 const PriorityQueuePage = () => {
     const [patients, setPatients] = useState([]);
@@ -58,12 +59,12 @@ const PriorityQueuePage = () => {
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                         {highQueue.map(patient => (
                             <div key={patient.patient_id} style={{ background: 'var(--danger-light)', borderRadius: 'var(--radius-md)', padding: '16px', border: '1px solid rgba(239, 68, 68, 0.2)' }}>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                                    <span style={{ fontWeight: 600 }}>{patient.name}</span>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                                    <span style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 600 }}><Avatar name={patient.name} size="sm" />{patient.name}</span>
                                     <span style={{ fontSize: '12px', color: 'var(--text-gray)' }}>#{patient.patient_id}</span>
                                 </div>
                                 <div style={{ fontSize: '14px', color: 'var(--danger)', fontWeight: 500, marginBottom: '12px' }}>
-                                    Doctor: {patient.doctor_name || 'Unassigned'} | Room: {patient.room_number || 'Waiting'}
+                                    Doctor: {patient.doctor_name ? <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}><Avatar name={patient.doctor_name} size="sm" />{patient.doctor_name}</span> : 'Unassigned'} | Room: {patient.room_number || 'Waiting'}
                                 </div>
                             </div>
                         ))}
@@ -85,12 +86,12 @@ const PriorityQueuePage = () => {
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                         {mediumQueue.map(patient => (
                             <div key={patient.patient_id} style={{ background: 'var(--warning-light)', borderRadius: 'var(--radius-md)', padding: '16px', border: '1px solid rgba(245, 158, 11, 0.2)' }}>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                                    <span style={{ fontWeight: 600 }}>{patient.name}</span>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                                    <span style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 600 }}><Avatar name={patient.name} size="sm" />{patient.name}</span>
                                     <span style={{ fontSize: '12px', color: 'var(--text-gray)' }}>#{patient.patient_id}</span>
                                 </div>
                                 <div style={{ fontSize: '14px', color: '#B45309', fontWeight: 500, marginBottom: '12px' }}>
-                                    Doctor: {patient.doctor_name || 'Unassigned'} | Room: {patient.room_number || 'Waiting'}
+                                    Doctor: {patient.doctor_name ? <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}><Avatar name={patient.doctor_name} size="sm" />{patient.doctor_name}</span> : 'Unassigned'} | Room: {patient.room_number || 'Waiting'}
                                 </div>
                             </div>
                         ))}
@@ -112,12 +113,12 @@ const PriorityQueuePage = () => {
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                         {lowQueue.map(patient => (
                             <div key={patient.patient_id} style={{ background: 'var(--success-light)', borderRadius: 'var(--radius-md)', padding: '16px', border: '1px solid rgba(16, 185, 129, 0.2)' }}>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                                    <span style={{ fontWeight: 600 }}>{patient.name}</span>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                                    <span style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 600 }}><Avatar name={patient.name} size="sm" />{patient.name}</span>
                                     <span style={{ fontSize: '12px', color: 'var(--text-gray)' }}>#{patient.patient_id}</span>
                                 </div>
                                 <div style={{ fontSize: '14px', color: 'var(--success)', fontWeight: 500, marginBottom: '12px' }}>
-                                    Doctor: {patient.doctor_name || 'Unassigned'} | Room: {patient.room_number || 'Waiting'}
+                                    Doctor: {patient.doctor_name ? <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}><Avatar name={patient.doctor_name} size="sm" />{patient.doctor_name}</span> : 'Unassigned'} | Room: {patient.room_number || 'Waiting'}
                                 </div>
                             </div>
                         ))}

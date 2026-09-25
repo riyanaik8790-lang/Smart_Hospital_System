@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { AlertTriangle, CalendarDays, CheckCircle, Clock3, Pencil, Plus, Search, XCircle } from 'lucide-react';
+import Avatar from '../components/Avatar';
 
 const EMPTY_FORM = {
   patient_name: '',
@@ -82,6 +83,7 @@ const AppointmentsPage = () => {
   const phoneError = formData.patient_phone && !/^\d{10}$/.test(formData.patient_phone)
     ? 'Phone number must be 10 digits'
     : '';
+  const selectedDoctor = doctors.find((doctor) => String(doctor.doctor_id) === String(formData.doctor_id));
 
   const notify = (message, type = 'success') => {
     setNotification({ message, type });
@@ -332,6 +334,7 @@ const AppointmentsPage = () => {
                       </option>
                     ))}
                   </select>
+                  {selectedDoctor && <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '8px', fontSize: '12px', color: 'var(--text-gray)' }}><Avatar name={selectedDoctor.name} size="sm" />{selectedDoctor.name}</div>}
                   {doctorsLoadError && (
                     <p className="help-text" style={{ color: 'var(--danger)' }} role="alert">
                       Could not load doctors: {doctorsLoadError}
@@ -377,8 +380,8 @@ const AppointmentsPage = () => {
               {filteredAppointments.length ? filteredAppointments.map((appointment) => (
                 <tr key={appointment.appointment_id}>
                   <td>#{appointment.appointment_id}</td>
-                  <td><strong>{appointment.patient_name}</strong><br /><span className="help-text">{appointment.patient_phone || 'No phone'}</span></td>
-                  <td>{appointment.doctor_name || 'Unassigned'}</td>
+                  <td><div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><Avatar name={appointment.patient_name} size="sm" /><div><strong>{appointment.patient_name}</strong><br /><span className="help-text">{appointment.patient_phone || 'No phone'}</span></div></div></td>
+                  <td>{appointment.doctor_name ? <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><Avatar name={appointment.doctor_name} size="sm" />{appointment.doctor_name}</div> : 'Unassigned'}</td>
                   <td>{appointment.appointment_date}</td>
                   <td>{appointment.appointment_time}</td>
                   <td>{appointment.reason || '—'}</td>

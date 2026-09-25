@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Outlet, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { authFetch } from '../api/authFetch';
+import Avatar from '../components/Avatar';
 import {
     LayoutDashboard,
     Users,
@@ -137,21 +138,6 @@ const DashboardLayout = () => {
         return () =>
             document.removeEventListener('mousedown', handleClickOutside);
     }, []);
-
-    // ==========================
-    // HELPERS
-    // ==========================
-    const getInitials = (name) => {
-        if (!name) return 'SM';
-
-        const parts = name.split(' ');
-
-        if (parts.length >= 2) {
-            return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
-        }
-
-        return name.substring(0, 2).toUpperCase();
-    };
 
     // ==========================
     // NAVIGATION FUNCTIONS
@@ -441,9 +427,7 @@ const DashboardLayout = () => {
                             }}
                         >
                             {profile ? <>
-                                <div className="avatar">
-                                    {getInitials(profile.name)}
-                                </div>
+                                <Avatar name={profile.name} />
 
                                 <div className="user-profile-details">
                                     <div>{profile.name}</div>

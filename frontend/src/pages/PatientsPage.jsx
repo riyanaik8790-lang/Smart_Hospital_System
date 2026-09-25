@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 
 import { Plus, AlertTriangle, LogOut, CheckCircle, Search, XCircle } from 'lucide-react';
 import { authFetch } from '../api/authFetch';
+import Avatar from '../components/Avatar';
 
 const DEPARTMENTS = [
     'General', 'Cardiology', 'Neurology', 'Orthopedic', 'Emergency'
@@ -242,6 +243,12 @@ const PatientsPage = () => {
                             <div className="input-group">
                                 <label>Patient Name *</label>
                                 <input type="text" name="name" value={formData.name} onChange={handleInputChange} className="form-control" placeholder="E.g. John Doe" required />
+                                {formData.name.trim() && (
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '8px', color: 'var(--text-gray)', fontSize: '12px' }}>
+                                        <Avatar name={formData.name} size="sm" />
+                                        Avatar preview
+                                    </div>
+                                )}
                             </div>
                             <div className="input-group">
                                 <label>Age *</label>
@@ -298,7 +305,12 @@ const PatientsPage = () => {
                             {filteredPatients.length > 0 ? filteredPatients.map((patient) => (
                                 <tr key={patient.patient_id}>
                                     <td>#{patient.patient_id}</td>
-                                    <td style={{ fontWeight: 500 }}>{patient.name}</td>
+                                    <td>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 500 }}>
+                                            <Avatar name={patient.name} size="sm" />
+                                            {patient.name}
+                                        </div>
+                                    </td>
                                     <td>
                                         <span className={`badge ${patient.priority_label === 'High' || patient.priority_label === 'Critical' ? 'badge-high' : patient.priority_label === 'Medium' ? 'badge-medium' : 'badge-low'}`}>
                                             {patient.priority_label}
@@ -312,7 +324,7 @@ const PatientsPage = () => {
                                             {patient.status}
                                         </span>
                                     </td>
-                                    <td>{patient.doctor_name || 'Unassigned'}</td>
+                                    <td>{patient.doctor_name ? <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><Avatar name={patient.doctor_name} size="sm" />{patient.doctor_name}</div> : 'Unassigned'}</td>
                                     <td>{patient.room_number || 'Unassigned'}</td>
                                     <td>
 
