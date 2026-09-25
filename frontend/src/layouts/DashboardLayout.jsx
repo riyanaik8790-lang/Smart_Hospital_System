@@ -145,7 +145,12 @@ const DashboardLayout = () => {
                         text: `${request.name} requested a password reset.`,
                         action: () => {
                             setShowNotif(false);
-                            navigate('/app/users');
+                            navigate('/app/users', {
+                                state: {
+                                    passwordResetUserId: request.user_id,
+                                    passwordResetUserName: request.name
+                                }
+                            });
                         }
                     }));
                     setNotifications((previous) => [

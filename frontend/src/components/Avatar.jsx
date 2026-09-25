@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import { UserRound } from 'lucide-react';
 
 const SIZES = { sm: 28, md: 40, lg: 64 };
@@ -32,9 +33,14 @@ const getInitials = (name) => {
 const Avatar = ({ name, avatarUrl, size = 'md', className = '' }) => {
   const pixels = SIZES[size] || SIZES.md;
   const cleanName = String(name || '').trim();
-  const imageUrl = typeof avatarUrl === 'string' ? avatarUrl.trim() : '';
+  const savedImageUrl = typeof avatarUrl === 'string' ? avatarUrl.trim() : '';
+  const defaultAvatarUrl = `/avatars/clinician-${(Math.abs(hashName(cleanName || 'person')) % 6) + 1}.svg`;
+  const imageUrl = savedImageUrl || defaultAvatarUrl;
   const initials = getInitials(cleanName);
   const colors = PALETTE[Math.abs(hashName(cleanName || 'person')) % PALETTE.length];
+  const [imageFailed, setImageFailed] = useState(false);
+
+  useEffect(() => setImageFailed(false), [imageUrl]);
 
   return (
     <span
@@ -50,12 +56,16 @@ const Avatar = ({ name, avatarUrl, size = 'md', className = '' }) => {
         fontSize: pixels >= SIZES.lg ? '20px' : pixels >= SIZES.md ? '14px' : '11px'
       }}
     >
-      {imageUrl
+      {imageUrl && !imageFailed
         ? <div
-            className="h-10 w-10 rounded-full overflow-hidden bg-slate-100 flex-shrink-0"
-            style={{ width: pixels, height: pixels }}
+            style={{ width: pixels, height: pixels, borderRadius: 'inherit', overflow: 'hidden', flexShrink: 0 }}
           >
-            <img src={imageUrl} alt={cleanName ? `${cleanName} avatar` : 'User avatar'} className="object-cover h-full w-full" />
+            <img
+              src={imageUrl}
+              alt={cleanName ? `${cleanName} avatar` : 'User avatar'}
+              onError={() => setImageFailed(true)}
+              style={{ display: 'block', width: '100%', height: '100%', objectFit: 'cover' }}
+            />
           </div>
         : (initials || <UserRound size={Math.round(pixels * 0.52)} aria-hidden="true" />)}
     </span>
