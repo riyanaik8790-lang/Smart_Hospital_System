@@ -490,6 +490,94 @@ app.get("/api/reports/efficiency/pdf", verifyToken, requireRole("admin"), async 
   }
 });
 
+// The Reports page intentionally uses these fixed weekly trend values. Keep the
+// exported PDF aligned with the chart displayed in that page.
+const performanceWeeklyTrends = [
+  { day: "Mon", admitted: 2, busyDoctors: 2, discharged: 0 },
+  { day: "Tue", admitted: 1, busyDoctors: 1, discharged: 0 },
+  { day: "Wed", admitted: 3, busyDoctors: 3, discharged: 1 },
+  { day: "Thu", admitted: 4, busyDoctors: 4, discharged: 1 },
+  { day: "Fri", admitted: 5, busyDoctors: 5, discharged: 2 },
+  { day: "Sat", admitted: 4, busyDoctors: 4, discharged: 3 },
+  { day: "Sun", admitted: 2, busyDoctors: 2, discharged: 4 }
+];
+
+app.get("/api/reports/performance/pdf", verifyToken, requireRole("admin"), async (req, res) => {
+  try {
+    const stats = await getEfficiencyStats();
+    const generatedAt = new Date();
+    const fileDate = generatedAt.toISOString().replace(/[:.]/g, "-").slice(0, 16);
+    const document = new PDFDocument({ margin: 40, size: "A4" });
+
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader("Content-Disposition", `attachment; filename=smart-hospital-performance-report-${fileDate}.pdf`);
+    document.pipe(res);
+
+    document.fontSize(21).fillColor("#111827").text("Smart Hospital Performance Report");
+    document.moveDown(0.25).fontSize(9).fillColor("#6b7280").text(`Generated: ${generatedAt.toLocaleString()}`);
+
+    const metrics = [
+      ["Bed Occupancy", stats.bedOccupancyRate, "#6366f1"],
+      ["Doctor Utilization", stats.doctorUtilizationRate, "#22c55e"],
+      ["Treatment Efficiency", stats.treatmentEfficiency, "#f59e0b"],
+      ["Critical Load", stats.criticalLoad, "#ef4444"]
+    ];
+    const cardY = 115;
+    const cardWidth = 124;
+    metrics.forEach(([label, value, color], index) => {
+      const x = 40 + index * 130;
+      document.roundedRect(x, cardY, cardWidth, 68, 7).fillAndStroke("#ffffff", "#e5e7eb");
+      document.rect(x, cardY, 5, 68).fill(color);
+      document.fontSize(8).fillColor("#6b7280").text(label, x + 14, cardY + 15, { width: 100 });
+      document.fontSize(18).fillColor("#111827").text(`${value}%`, x + 14, cardY + 34);
+    });
+
+    document.fontSize(14).fillColor("#111827").text("Weekly Hospital Trends", 40, 215);
+    const chart = { x: 70, y: 260, width: 470, height: 270, max: 8 };
+    document.strokeColor("#d1d5db").lineWidth(0.5);
+    for (let value = 0; value <= chart.max; value += 2) {
+      const y = chart.y + chart.height - (value / chart.max) * chart.height;
+      document.moveTo(chart.x, y).lineTo(chart.x + chart.width, y).dash(2, { space: 2 }).stroke().undash();
+      document.fontSize(8).fillColor("#6b7280").text(String(value), 48, y - 4, { width: 15, align: "right" });
+    }
+    document.moveTo(chart.x, chart.y).lineTo(chart.x, chart.y + chart.height).lineTo(chart.x + chart.width, chart.y + chart.height).strokeColor("#6b7280").stroke();
+
+    const xForIndex = (index) => chart.x + (index * chart.width) / (performanceWeeklyTrends.length - 1);
+    performanceWeeklyTrends.forEach((point, index) => {
+      document.fontSize(8).fillColor("#6b7280").text(point.day, xForIndex(index) - 12, chart.y + chart.height + 8, { width: 24, align: "center" });
+    });
+    const drawSeries = (key, color) => {
+      document.strokeColor(color).lineWidth(2);
+      performanceWeeklyTrends.forEach((point, index) => {
+        const x = xForIndex(index);
+        const y = chart.y + chart.height - (point[key] / chart.max) * chart.height;
+        if (index === 0) document.moveTo(x, y); else document.lineTo(x, y);
+      });
+      document.stroke();
+      performanceWeeklyTrends.forEach((point, index) => {
+        const x = xForIndex(index);
+        const y = chart.y + chart.height - (point[key] / chart.max) * chart.height;
+        document.circle(x, y, 3).fillAndStroke("#ffffff", color);
+      });
+    };
+    drawSeries("admitted", "#3b82f6");
+    drawSeries("busyDoctors", "#ef4444");
+    drawSeries("discharged", "#10b981");
+
+    const legend = [["Admitted", "#3b82f6"], ["Busy Doctors", "#ef4444"], ["Discharged", "#10b981"]];
+    legend.forEach(([label, color], index) => {
+      const x = 165 + index * 120;
+      document.circle(x, 558, 4).fill(color);
+      document.fontSize(8).fillColor("#374151").text(label, x + 8, 554, { width: 95 });
+    });
+    document.end();
+  } catch (err) {
+    console.error("Performance PDF report error:", err);
+    if (!res.headersSent) res.status(500).json({ message: "Unable to generate the performance PDF report." });
+    else res.end();
+  }
+});
+
 // =====================================================
 // APPOINTMENTS (separate from patient admission)
 // =====================================================

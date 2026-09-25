@@ -16,6 +16,24 @@ const Reports = () => {
   const [data, setData] = useState([]);
   const [stats, setStats] = useState({});
   const [isExportOpen, setIsExportOpen] = useState(false);
+  const [exporting, setExporting] = useState("");
+  const [exportError, setExportError] = useState("");
+
+  const reportFilename = (extension) => {
+    const timestamp = new Date().toISOString().replace(/[:.]/g, "-").slice(0, 16);
+    return `smart-hospital-performance-report-${timestamp}.${extension}`;
+  };
+
+  const downloadBlob = (blob, filename) => {
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+  };
 
   useEffect(() => {
     authFetch("/api/efficiency")
@@ -75,13 +93,56 @@ const Reports = () => {
   }, []);
 
   const handleExportCSV = () => {
-    console.log("Report exported as CSV successfully.");
-    setIsExportOpen(false);
+    setExporting("csv");
+    setExportError("");
+    try {
+      const csvCell = (value) => `"${String(value ?? "").replace(/"/g, '""')}"`;
+      const rows = [
+        ["Smart Hospital Performance Report"],
+        ["Generated", new Date().toLocaleString()],
+        [],
+        ["Performance metric", "Value"],
+        ["Bed Occupancy", `${stats.bedOccupancyRate || 0}%`],
+        ["Doctor Utilization", `${stats.doctorUtilizationRate || 0}%`],
+        ["Treatment Efficiency", `${stats.treatmentEfficiency || 0}%`],
+        ["Critical Load", `${stats.criticalLoad || 0}%`],
+        [],
+        ["Weekly Hospital Trends"],
+        ["Day", "Admitted", "Busy Doctors", "Discharged"],
+        ...data.map(({ day, admitted, busyDoctors, discharged }) => [day, admitted, busyDoctors, discharged])
+      ];
+      downloadBlob(
+        new Blob([rows.map((row) => row.map(csvCell).join(",")).join("\r\n")], { type: "text/csv;charset=utf-8" }),
+        reportFilename("csv")
+      );
+    } catch (error) {
+      console.error("Performance CSV export error:", error);
+      setExportError("Unable to generate the CSV report.");
+    } finally {
+      setExporting("");
+      setIsExportOpen(false);
+    }
   };
 
-  const handleExportPDF = () => {
-    console.log("Report exported as PDF successfully.");
-    setIsExportOpen(false);
+  const handleExportPDF = async () => {
+    setExporting("pdf");
+    setExportError("");
+    try {
+      const response = await authFetch("/api/reports/performance/pdf");
+      if (!response.ok) {
+        const message = response.headers.get("content-type")?.includes("application/json")
+          ? (await response.json()).message
+          : await response.text();
+        throw new Error(message || "Unable to generate the PDF report.");
+      }
+      downloadBlob(await response.blob(), reportFilename("pdf"));
+    } catch (error) {
+      console.error("Performance PDF export error:", error);
+      setExportError(error.message || "Unable to generate the PDF report.");
+    } finally {
+      setExporting("");
+      setIsExportOpen(false);
+    }
   };
 
   return (
@@ -113,6 +174,7 @@ const Reports = () => {
             onClick={() => setIsExportOpen((isOpen) => !isOpen)}
             aria-expanded={isExportOpen}
             aria-haspopup="menu"
+            disabled={Boolean(exporting)}
           >
             <Download size={16} />
             Export
@@ -121,12 +183,14 @@ const Reports = () => {
 
           {isExportOpen && (
             <div className="efficiency-export-options" role="menu">
-              <button type="button" onClick={handleExportCSV} role="menuitem"><Download size={16} /> Export as CSV</button>
-              <button type="button" onClick={handleExportPDF} role="menuitem"><Download size={16} /> Export as PDF</button>
+              <button type="button" onClick={handleExportCSV} role="menuitem"><Download size={16} /> {exporting === "csv" ? "Preparing CSV..." : "Export as CSV"}</button>
+              <button type="button" onClick={handleExportPDF} role="menuitem"><Download size={16} /> {exporting === "pdf" ? "Preparing PDF..." : "Export as PDF"}</button>
             </div>
           )}
         </div>
       </div>
+
+      {exportError && <div className="alert alert-error" role="alert">{exportError}</div>}
 
       {/* KPI CARDS */}
       <div

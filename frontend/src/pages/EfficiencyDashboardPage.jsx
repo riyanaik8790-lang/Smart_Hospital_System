@@ -106,23 +106,24 @@ const EfficiencyDashboardPage = () => {
         return 'success';
     };
 
-    const healthChecks = [
+    const getHealthChecks = (reportStats) => [
         {
             name: 'Emergency Department Status',
-            status: stats.criticalLoad > 20 ? 'High capacity warning' : 'Operating normally',
-            detail: stats.criticalLoad > 20 ? 'Routing new emergencies may be delayed.' : 'Capable of handling new traumas.'
+            status: reportStats.criticalLoad > 20 ? 'High capacity warning' : 'Operating normally',
+            detail: reportStats.criticalLoad > 20 ? 'Routing new emergencies may be delayed.' : 'Capable of handling new traumas.'
         },
         {
             name: 'Staffing Levels',
-            status: stats.doctorUtilizationRate > 85 ? 'Staffing strain' : 'Adequate staffing',
-            detail: stats.doctorUtilizationRate > 85 ? 'Medical staff are severely strained. Consider calling on-call physicians.' : 'Adequate physician availability for current patient volume.'
+            status: reportStats.doctorUtilizationRate > 85 ? 'Staffing strain' : 'Adequate staffing',
+            detail: reportStats.doctorUtilizationRate > 85 ? 'Medical staff are severely strained. Consider calling on-call physicians.' : 'Adequate physician availability for current patient volume.'
         },
         {
             name: 'Bed Availability',
-            status: stats.bedOccupancyRate > 90 ? 'Critical bed shortage' : 'Normal availability',
-            detail: stats.bedOccupancyRate > 90 ? 'Expedite discharges if clinically appropriate.' : 'Normal bed availability across all wards.'
+            status: reportStats.bedOccupancyRate > 90 ? 'Critical bed shortage' : 'Normal availability',
+            detail: reportStats.bedOccupancyRate > 90 ? 'Expedite discharges if clinically appropriate.' : 'Normal bed availability across all wards.'
         }
     ];
+    const healthChecks = getHealthChecks(stats);
 
     const reportFilename = (extension) => {
         const now = new Date();
@@ -133,18 +134,28 @@ const EfficiencyDashboardPage = () => {
 
     const csvCell = (value) => `"${String(value ?? '').replace(/"/g, '""')}"`;
 
-    const exportCsv = () => {
+    const exportCsv = async () => {
         setExporting('csv');
         try {
+            // Do not export the initial empty state. Request the same live
+            // snapshot used by the dashboard immediately before creating the file.
+            const response = await authFetch('/api/efficiency');
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                throw new Error(errorData.message || 'Unable to fetch current efficiency data.');
+            }
+            const reportStats = await response.json();
+            setStats(reportStats);
+            const reportHealthChecks = getHealthChecks(reportStats);
             const rows = [
                 ['Metric Name', 'Value', 'Percentage', 'Detail'],
-                ['Bed Occupancy', `${stats.occupiedRooms}/${stats.totalRooms}`, `${stats.bedOccupancyRate}%`, 'Active beds currently in use'],
-                ['Doctor Utilization', `${stats.busyDoctors}/${stats.totalDoctors}`, `${stats.doctorUtilizationRate}%`, 'Doctors currently busy'],
-                ['Treatment Efficiency', `${stats.dischargedPatients} discharged`, `${stats.treatmentEfficiency}%`, `Out of ${stats.totalPatients} historically`],
-                ['Inpatient Ward Capacity', `${stats.occupiedRooms}/${stats.totalRooms}`, `${stats.bedOccupancyRate}%`, 'Occupied rooms out of total rooms'],
-                ['Medical Staff Bandwidth', `${stats.busyDoctors}/${stats.totalDoctors}`, `${stats.doctorUtilizationRate}%`, 'Busy doctors out of total doctors'],
-                ['Critical Care Load', `${stats.emergencyAdmitted}/${stats.admittedPatients}`, `${stats.criticalLoad}%`, 'Critical emergency patients out of admitted patients'],
-                ...healthChecks.map((check) => [check.name, check.status, '', check.detail]),
+                ['Bed Occupancy', `${reportStats.occupiedRooms}/${reportStats.totalRooms}`, `${reportStats.bedOccupancyRate}%`, 'Active beds currently in use'],
+                ['Doctor Utilization', `${reportStats.busyDoctors}/${reportStats.totalDoctors}`, `${reportStats.doctorUtilizationRate}%`, 'Doctors currently busy'],
+                ['Treatment Efficiency', `${reportStats.dischargedPatients} discharged`, `${reportStats.treatmentEfficiency}%`, `Out of ${reportStats.totalPatients} historically`],
+                ['Inpatient Ward Capacity', `${reportStats.occupiedRooms}/${reportStats.totalRooms}`, `${reportStats.bedOccupancyRate}%`, 'Occupied rooms out of total rooms'],
+                ['Medical Staff Bandwidth', `${reportStats.busyDoctors}/${reportStats.totalDoctors}`, `${reportStats.doctorUtilizationRate}%`, 'Busy doctors out of total doctors'],
+                ['Critical Care Load', `${reportStats.emergencyAdmitted}/${reportStats.admittedPatients}`, `${reportStats.criticalLoad}%`, 'Critical emergency patients out of admitted patients'],
+                ...reportHealthChecks.map((check) => [check.name, check.status, '', check.detail]),
                 ['Report Generated', new Date().toLocaleString(), '', 'Smart Hospital Efficiency Analytics']
             ];
             const blob = new Blob([rows.map((row) => row.map(csvCell).join(',')).join('\n')], { type: 'text/csv;charset=utf-8' });
@@ -152,8 +163,10 @@ const EfficiencyDashboardPage = () => {
             const link = document.createElement('a');
             link.href = url;
             link.download = reportFilename('csv');
+            document.body.appendChild(link);
             link.click();
-            URL.revokeObjectURL(url);
+            link.remove();
+            window.setTimeout(() => URL.revokeObjectURL(url), 1000);
             notify('CSV report downloaded.');
         } catch (error) {
             console.error('CSV export error:', error);
