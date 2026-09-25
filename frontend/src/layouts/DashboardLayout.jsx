@@ -81,7 +81,13 @@ const DashboardLayout = () => {
     useEffect(() => {
         const name = readStoredText('userName', 'Staff');
         const storedRole = readStoredText('role', 'staff');
-        setProfile({ name, role: formatRole(storedRole) });
+        setProfile({ name, role: formatRole(storedRole), avatarUrl: localStorage.getItem('avatarUrl') || '' });
+    }, []);
+
+    useEffect(() => {
+        const refreshAvatar = () => setProfile((current) => current && ({ ...current, avatarUrl: localStorage.getItem('avatarUrl') || '' }));
+        window.addEventListener('avatar-updated', refreshAvatar);
+        return () => window.removeEventListener('avatar-updated', refreshAvatar);
     }, []);
 
     // ==========================
@@ -176,7 +182,7 @@ const DashboardLayout = () => {
                 />
             )}
             <div className={`sidebar ${mobileMenuOpen ? 'mobile-open' : ''}`}>
-                <div className="sidebar-header">
+                <div className="sidebar-header hidden lg:flex">
                     <button className="hospital-brand" type="button" onClick={() => navigate('/app/dashboard')} aria-label="Go to dashboard">
                         <Activity size={18} />
                         Smart Hospital Management System
@@ -425,7 +431,7 @@ const DashboardLayout = () => {
                             }}
                         >
                             {profile ? <>
-                                <Avatar name={profile.name} />
+                                <Avatar name={profile.name} avatarUrl={profile.avatarUrl} />
 
                                 <div className="user-profile-details">
                                     <div>{profile.name}</div>

@@ -29,7 +29,7 @@ const getInitials = (name) => {
 };
 
 /** A deterministic, offline placeholder avatar for people without photos. */
-const Avatar = ({ name, size = 'md', className = '' }) => {
+const Avatar = ({ name, avatarUrl, size = 'md', className = '' }) => {
   const pixels = SIZES[size] || SIZES.md;
   const cleanName = String(name || '').trim();
   const initials = getInitials(cleanName);
@@ -49,7 +49,14 @@ const Avatar = ({ name, size = 'md', className = '' }) => {
         fontSize: pixels >= SIZES.lg ? '20px' : pixels >= SIZES.md ? '14px' : '11px'
       }}
     >
-      {initials || <UserRound size={Math.round(pixels * 0.52)} aria-hidden="true" />}
+      {avatarUrl
+        ? <div
+            className="h-10 w-10 rounded-full overflow-hidden bg-slate-100 flex-shrink-0"
+            style={{ width: pixels, height: pixels }}
+          >
+            <img src={avatarUrl} alt="" className="object-cover h-full w-full" />
+          </div>
+        : (initials || <UserRound size={Math.round(pixels * 0.52)} aria-hidden="true" />)}
     </span>
   );
 };

@@ -29,6 +29,7 @@ const LoginPage = () => {
                 localStorage.setItem('token', data.token);
                 localStorage.setItem('role', data.role);
                 localStorage.setItem('userName', data.name || 'Staff Member');
+                localStorage.setItem('avatarUrl', data.avatarUrl || '');
                 localStorage.setItem('mustChangePassword', String(Boolean(data.mustChangePassword)));
 
                 navigate(data.mustChangePassword ? '/set-password' : '/app');
@@ -59,12 +60,22 @@ const LoginPage = () => {
             const data = await response.json().catch(() => ({}));
 
             if (!response.ok) {
-                throw new Error(data.message || 'Unable to send the password reset request.');
+                const backendMessage = data.message || `HTTP ${response.status}`;
+                console.error(`Password reset request failed (${response.status}):`, backendMessage);
+                if (response.status === 404) {
+                    setError('No staff account found with this email.');
+                } else {
+                    setError('Server error. Please try again or contact IT.');
+                }
+                return;
             }
 
             setMessage('Password reset request sent to the Administrator.');
         } catch (requestError) {
-            setError(requestError.message || 'Unable to send the password reset request.');
+            // fetch rejects only for network-level failures (including common
+            // CORS failures), not for HTTP status errors handled above.
+            console.error('Password reset network error:', requestError);
+            setError('Network error: Cannot reach the server.');
         }
     };
 

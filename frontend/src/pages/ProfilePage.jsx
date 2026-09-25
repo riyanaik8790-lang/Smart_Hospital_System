@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import { ShieldCheck, UserRound, UserX } from 'lucide-react';
+import { ShieldCheck, UserX } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import Avatar from '../components/Avatar';
+import AvatarSelectionModal from '../components/AvatarSelectionModal';
 import DeactivateAccountModal from '../components/DeactivateAccountModal';
 import { authFetch } from '../api/authFetch';
 
@@ -10,10 +12,28 @@ function ProfilePage() {
   const [statusLoading, setStatusLoading] = useState(true);
   const [isOnlyActiveAdmin, setIsOnlyActiveAdmin] = useState(false);
   const [statusError, setStatusError] = useState('');
-  const user = {
+  const [avatarModalOpen, setAvatarModalOpen] = useState(false);
+  const [user, setUser] = useState({
+    userId: null,
     name: localStorage.getItem('userName') || 'My account',
-    role: localStorage.getItem('role') || 'staff'
-  };
+    role: localStorage.getItem('role') || 'staff',
+    avatarUrl: localStorage.getItem('avatarUrl') || ''
+  });
+
+  useEffect(() => {
+    const loadProfile = async () => {
+      try {
+        const response = await authFetch('/users/me');
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.message || 'Unable to load profile.');
+        setUser({ userId: data.user_id, name: data.name, role: data.role, avatarUrl: data.avatar_url || '' });
+        localStorage.setItem('avatarUrl', data.avatar_url || '');
+      } catch (error) {
+        setStatusError(error.message);
+      }
+    };
+    loadProfile();
+  }, []);
 
   useEffect(() => {
     const loadDeactivationStatus = async () => {
@@ -51,6 +71,13 @@ function ProfilePage() {
     }
   };
 
+  const handleAvatarSaved = (avatarUrl) => {
+    setUser((current) => ({ ...current, avatarUrl }));
+    localStorage.setItem('avatarUrl', avatarUrl);
+    window.dispatchEvent(new Event('avatar-updated'));
+    setAvatarModalOpen(false);
+  };
+
   return (
     <div className="page-container" style={{ width: '100%', maxWidth: '960px', minWidth: 0 }}>
       <div className="page-header">
@@ -63,10 +90,11 @@ function ProfilePage() {
       <div className="section-card" style={{ width: '100%', maxWidth: '100%', overflow: 'hidden' }}>
         <div className="section-body" style={{ overflowWrap: 'anywhere' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '14px', marginBottom: '20px' }}>
-            <div className="stat-icon"><UserRound size={24} /></div>
+            <Avatar name={user.name} avatarUrl={user.avatarUrl} size="lg" />
             <div>
               <div style={{ fontSize: '18px', fontWeight: 600 }}>{user.name}</div>
               <div style={{ color: 'var(--text-gray)', textTransform: 'capitalize' }}>{user.role}</div>
+              <button type="button" className="btn btn-outline" style={{ marginTop: 8, padding: '6px 10px', fontSize: 12 }} onClick={() => setAvatarModalOpen(true)} disabled={!user.userId}>Choose avatar</button>
             </div>
           </div>
 
@@ -109,6 +137,7 @@ function ProfilePage() {
           onConfirm={deactivate}
         />
       )}
+      {avatarModalOpen && <AvatarSelectionModal userId={user.userId} avatarUrl={user.avatarUrl} onClose={() => setAvatarModalOpen(false)} onSaved={handleAvatarSaved} />}
     </div>
   );
 }

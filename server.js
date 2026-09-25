@@ -66,6 +66,7 @@ app.post("/api/auth/login", async (req, res) => {
       token,
       role: user.role,
       name: user.name,
+      avatarUrl: user.avatar_url || "",
       mustChangePassword: Boolean(user.must_change_password)
     });
   } catch (err) {
@@ -876,6 +877,44 @@ app.get("/users", verifyToken, requireRole("admin"), async (req, res) => {
   } catch (err) {
     console.error("List users error:", err);
     res.status(500).json({ message: "Unable to load users." });
+  }
+});
+
+app.get("/users/me", verifyToken, async (req, res) => {
+  try {
+    const [users] = await db.execute(
+      "SELECT user_id, name, email, role, avatar_url FROM users WHERE user_id = $1 AND is_active = TRUE",
+      [req.user.id]
+    );
+    if (!users.length) return res.status(404).json({ message: "Active user account not found." });
+    res.json(users[0]);
+  } catch (err) {
+    console.error("Get user profile error:", err);
+    res.status(500).json({ message: "Unable to load user profile." });
+  }
+});
+
+app.put("/api/users/update-avatar", verifyToken, async (req, res) => {
+  try {
+    const userId = Number(req.body.userId);
+    const avatarUrl = String(req.body.avatarUrl || "").trim();
+    const isApprovedAvatar = /^\/avatars\/clinician-[1-6]\.svg$/.test(avatarUrl);
+
+    // The logged-in user may only set their own avatar. This avoids trusting a
+    // user ID supplied by the browser to update another staff member's profile.
+    if (!Number.isInteger(userId) || userId !== req.user.id || !isApprovedAvatar) {
+      return res.status(400).json({ message: "Provide your user ID and a valid avatar selection." });
+    }
+
+    const [updated] = await db.execute(
+      "UPDATE users SET avatar_url = $1 WHERE user_id = $2 AND is_active = TRUE RETURNING user_id, name, email, role, avatar_url",
+      [avatarUrl, userId]
+    );
+    if (!updated.length) return res.status(404).json({ message: "Active user account not found." });
+    res.json({ message: "Avatar updated.", user: updated[0] });
+  } catch (err) {
+    console.error("Update avatar error:", err);
+    res.status(500).json({ message: "Unable to update avatar." });
   }
 });
 
