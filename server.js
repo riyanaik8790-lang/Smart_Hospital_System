@@ -742,27 +742,26 @@ app.post("/appointments", verifyToken, requireRole("admin", "receptionist"), asy
       return res.status(409).json({ message: "That doctor is no longer active. Choose another doctor." });
     }
 
-    if (!supabase) {
-      return res.status(503).json({ message: "Supabase is not configured." });
-    }
-
-    const { data: appointment, error: insertError } = await supabase
-      .from("appointments")
-      .insert({
-        patient_name: patient_name.trim(),
-        patient_phone: normalizedPhone,
-        doctor_id: parsedDoctorId,
+    // Appointments live in the application's PostgreSQL database, just like
+    // the list, status-update, and delete endpoints. Supabase credentials are
+    // optional for other features and must not prevent appointment booking.
+    const [created] = await db.execute(
+      `INSERT INTO appointments
+        (patient_name, patient_phone, doctor_id, appointment_date, appointment_time, reason)
+       VALUES ($1, $2, $3, $4, $5, $6)
+       RETURNING appointment_id, patient_name, patient_phone, doctor_id,
+                 TO_CHAR(appointment_date, 'YYYY-MM-DD') AS appointment_date,
+                 appointment_time, reason, status, created_at`,
+      [
+        patient_name.trim(),
+        normalizedPhone,
+        parsedDoctorId,
         appointment_date,
-        appointment_time: normalizedAppointmentTime,
-        reason: reason?.trim() || null
-      })
-      .select("appointment_id, patient_name, patient_phone, doctor_id, appointment_date, appointment_time, reason, status, created_at")
-      .single();
-
-    if (insertError) {
-      console.error("Supabase appointment insert error:", insertError);
-      return res.status(500).json({ message: "Unable to create appointment." });
-    }
+        normalizedAppointmentTime,
+        reason?.trim() || null
+      ]
+    );
+    const appointment = created[0];
 
     res.status(201).json(appointment);
   } catch (err) {
