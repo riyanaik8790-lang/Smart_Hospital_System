@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { Activity, Eye, EyeOff } from 'lucide-react';
 
 const LoginPage = () => {
@@ -112,10 +112,6 @@ const LoginPage = () => {
                         Sign In to Dashboard
                     </button>
                 </form>
-
-                <p className="text-center" style={{ marginTop: '24px', fontSize: '14px', color: 'var(--text-gray)' }}>
-                    New staff member? <Link to="/register">Create an account</Link>
-                </p>
             </div>
         </div>
     );

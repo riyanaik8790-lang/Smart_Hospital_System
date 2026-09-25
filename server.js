@@ -62,9 +62,9 @@ app.post("/api/auth/login", async (req, res) => {
 });
 
 // =====================================================
-// REGISTRATION SYSTEM
+// STAFF ACCOUNT CREATION
 // =====================================================
-app.post("/api/auth/register", async (req, res) => {
+async function createStaffAccount(req, res) {
   try {
     const { name, email, password } = req.body;
     const role = String(req.body.role || "").trim().toLowerCase();
@@ -111,23 +111,20 @@ app.post("/api/auth/register", async (req, res) => {
       );
     }
 
-    const token = jwt.sign(
-      { id: insertResult.insertId, role },
-      SECRET_KEY,
-      { expiresIn: "8h" }
-    );
-
     res.status(201).json({
-      message: "Registration Successful",
-      token,
-      role,
-      name
+      message: "Staff account created.",
+      user: { user_id: insertResult.insertId, name: name.trim(), email: email.trim().toLowerCase(), role, is_active: true }
     });
   } catch (err) {
-    console.error("Registration Error:", err);
-    res.status(500).json({ message: "Registration failed" });
+    console.error("Staff account creation error:", err);
+    res.status(500).json({ message: "Unable to create staff account." });
   }
-});
+}
+
+// Both the current staff endpoint and the legacy registration endpoint are
+// protected. A browser without an active Admin token cannot create accounts.
+app.post("/users", verifyToken, requireRole("admin"), createStaffAccount);
+app.post("/api/auth/register", verifyToken, requireRole("admin"), createStaffAccount);
 
 // =====================================================
 // DASHBOARD
@@ -754,6 +751,49 @@ app.get("/users", verifyToken, requireRole("admin"), async (req, res) => {
   }
 });
 
+app.put("/users/:user_id/role", verifyToken, requireRole("admin"), async (req, res) => {
+  try {
+    const userId = Number(req.params.user_id);
+    const role = String(req.body.role || "").trim().toLowerCase();
+    const allowedRoles = new Set(["admin", "doctor", "nurse", "receptionist"]);
+    if (!Number.isInteger(userId) || userId <= 0 || !allowedRoles.has(role)) {
+      return res.status(400).json({ message: "Provide a valid user ID and staff role." });
+    }
+
+    const [users] = await db.execute(
+      "SELECT user_id, name, email, role, is_active FROM users WHERE user_id = $1",
+      [userId]
+    );
+    const target = users[0];
+    if (!target) return res.status(404).json({ message: "User not found." });
+
+    if (target.role === "admin" && role !== "admin" && target.is_active) {
+      const [[adminCount]] = await db.execute(
+        "SELECT COUNT(*) AS count FROM users WHERE role = 'admin' AND is_active = TRUE"
+      );
+      if (Number(adminCount.count) <= 1) {
+        return res.status(409).json({ message: "The only active Admin account must remain an Admin." });
+      }
+    }
+
+    await db.execute("UPDATE users SET role = $1 WHERE user_id = $2", [role, userId]);
+    if (role === "doctor") {
+      const [doctorRows] = await db.execute("SELECT doctor_id FROM doctors WHERE user_id = $1", [userId]);
+      if (!doctorRows.length) {
+        await db.execute(
+          "INSERT INTO doctors (user_id, name, specialization, status, email) VALUES ($1, $2, 'General', 'Available', $3)",
+          [userId, target.name, target.email]
+        );
+      }
+    }
+
+    res.json({ message: "Staff role updated.", user: { ...target, role } });
+  } catch (err) {
+    console.error("Staff role update error:", err);
+    res.status(500).json({ message: "Unable to update staff role." });
+  }
+});
+
 app.get("/users/me/deactivation-status", verifyToken, async (req, res) => {
   try {
     const [users] = await db.execute(
@@ -849,7 +889,8 @@ app.get("/doctors", verifyToken, async (req, res) => {
       -- to_jsonb keeps this read endpoint compatible until migration 002 has
       -- been run, while still hiding a doctor linked to an inactive user.
       LEFT JOIN users u ON u.user_id::text = (to_jsonb(d) ->> 'user_id')
-      WHERE (to_jsonb(d) ->> 'user_id') IS NULL OR u.is_active = TRUE
+      WHERE (to_jsonb(d) ->> 'user_id') IS NULL
+        OR (u.is_active = TRUE AND LOWER(u.role) = 'doctor')
       ORDER BY d.doctor_id ASC
     `);
 

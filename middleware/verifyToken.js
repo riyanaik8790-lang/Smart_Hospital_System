@@ -20,12 +20,15 @@ async function verifyToken(req, res, next) {
 
   try {
     const [users] = await db.execute(
-      "SELECT is_active FROM users WHERE user_id = $1",
+      "SELECT is_active, role FROM users WHERE user_id = $1",
       [req.user.id]
     );
     if (!users.length || !users[0].is_active) {
       return res.status(401).json({ message: "This account has been deactivated." });
     }
+    // Authorization must follow the current database role, not a stale JWT
+    // claim left over after an Admin changes someone's role.
+    req.user.role = users[0].role;
     next();
   } catch (err) {
     console.error("Authenticated user lookup failed:", err);
