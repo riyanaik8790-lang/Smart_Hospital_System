@@ -1,9 +1,22 @@
 import React, { useState } from 'react';
+import { Check, Copy, Eye, EyeOff } from 'lucide-react';
 
 export default function PasswordOverrideModal({ user, onClose, onConfirm }) {
   const [newPassword, setNewPassword] = useState('');
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [copyMessage, setCopyMessage] = useState('');
+
+  const copyPassword = async () => {
+    if (!newPassword) return;
+    try {
+      await navigator.clipboard.writeText(newPassword);
+      setCopyMessage('Password copied to clipboard.');
+    } catch {
+      setCopyMessage('Unable to copy the password. Please copy it manually.');
+    }
+  };
 
   const submit = async (event) => {
     event.preventDefault();
@@ -25,8 +38,17 @@ export default function PasswordOverrideModal({ user, onClose, onConfirm }) {
       <p style={{ color: 'var(--text-gray)' }}>Set a temporary password for <strong>{user.name}</strong>. They will be required to change it after their next sign-in.</p>
       <div className="input-group">
         <label className="input-label" htmlFor="new-temporary-password">New Temporary Password</label>
-        <input id="new-temporary-password" className="form-control" type="password" value={newPassword} onChange={(event) => setNewPassword(event.target.value)} minLength={8} required autoFocus />
+        <div style={{ position: 'relative' }}>
+          <input id="new-temporary-password" className="form-control" type={showPassword ? 'text' : 'password'} value={newPassword} onChange={(event) => { setNewPassword(event.target.value); setCopyMessage(''); }} minLength={8} required autoFocus style={{ paddingRight: 76 }} />
+          <button type="button" onClick={() => setShowPassword((visible) => !visible)} aria-label={showPassword ? 'Hide temporary password' : 'Show temporary password'} title={showPassword ? 'Hide password' : 'Show password'} style={{ position: 'absolute', right: 40, top: '50%', transform: 'translateY(-50%)', display: 'flex', padding: 4, background: 'transparent', color: 'var(--text-gray)' }}>
+            {showPassword ? <EyeOff size={18} aria-hidden="true" /> : <Eye size={18} aria-hidden="true" />}
+          </button>
+          <button type="button" onClick={copyPassword} disabled={!newPassword} aria-label="Copy temporary password" title="Copy password" style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', display: 'flex', padding: 4, background: 'transparent', color: 'var(--text-gray)' }}>
+            {copyMessage === 'Password copied to clipboard.' ? <Check size={18} aria-hidden="true" /> : <Copy size={18} aria-hidden="true" />}
+          </button>
+        </div>
         <p className="help-text">Use at least 8 characters, including a letter and a number.</p>
+        {copyMessage && <p className="help-text" role="status" style={{ color: copyMessage.startsWith('Unable') ? 'var(--danger)' : 'var(--success, #15803d)' }}>{copyMessage}</p>}
       </div>
       {error && <p role="alert" style={{ color: 'var(--danger)' }}>{error}</p>}
       <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 20 }}>

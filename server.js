@@ -156,10 +156,16 @@ app.post("/api/auth/change-password", verifyToken, async (req, res) => {
     }
 
     const hashedPassword = await bcrypt.hash(password, 12);
-    await db.execute(
-      "UPDATE users SET password = ?, must_change_password = FALSE WHERE user_id = ?",
+    const [updatedUsers] = await db.execute(
+      `UPDATE users
+       SET password = $1, must_change_password = FALSE
+       WHERE user_id = $2 AND is_active = TRUE
+       RETURNING user_id`,
       [hashedPassword, req.user.id]
     );
+    if (!updatedUsers.length) {
+      return res.status(404).json({ message: "Active user account not found." });
+    }
     res.json({ message: "Password updated.", mustChangePassword: false });
   } catch (err) {
     console.error("Password change error:", err);
@@ -1028,6 +1034,9 @@ app.put("/api/users/profile", verifyToken, async (req, res) => {
        RETURNING user_id, name, email, phone, role, avatar_url`,
       [name, phone, hashedPassword, req.user.id]
     );
+    if (!updated.length) {
+      return res.status(404).json({ message: "Active user account not found." });
+    }
 
     await db.execute("UPDATE doctors SET name = $1, phone = $2 WHERE user_id = $3", [name, phone, req.user.id]);
     res.json({ message: newPassword ? "Profile and password updated." : "Profile updated.", user: updated[0] });

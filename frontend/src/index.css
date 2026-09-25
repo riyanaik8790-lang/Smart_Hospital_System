@@ -548,6 +548,75 @@ button {
   font-size: 14px;
 }
 
+.profile-page {
+  padding-top: 24px;
+  padding-bottom: 24px;
+}
+
+.profile-page .section-card,
+.profile-page form {
+  min-width: 0;
+}
+
+.profile-page form svg {
+  flex: 0 0 auto;
+}
+
+.profile-page .profile-card {
+  padding: 24px;
+}
+
+.profile-page .profile-identity {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 20px;
+}
+
+.profile-page .profile-card-section {
+  border-top: 1px solid var(--border);
+  padding-top: 24px;
+}
+
+.profile-page .profile-password-section {
+  margin-top: 24px;
+}
+
+.profile-page .password-field {
+  position: relative;
+}
+
+.profile-page .password-field .form-control {
+  padding-right: 46px;
+}
+
+.profile-page .password-visibility-toggle {
+  position: absolute;
+  top: 50%;
+  right: 10px;
+  display: flex;
+  align-items: center;
+  padding: 4px;
+  transform: translateY(-50%);
+  color: var(--text-gray);
+  background: transparent;
+}
+
+.profile-page .password-visibility-toggle:hover,
+.profile-page .password-visibility-toggle:focus-visible {
+  color: var(--primary);
+}
+
+@media (max-width: 640px) {
+  .profile-page {
+    padding-top: 16px;
+  }
+
+  .profile-page .profile-card {
+    padding: 20px;
+  }
+}
+
 /* Dashboard greeting: explicit component styling avoids utility-class
    overrides and keeps the white surface evenly filled to its rounded edge. */
 .welcome-banner {
