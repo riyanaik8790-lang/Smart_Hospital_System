@@ -82,6 +82,28 @@ const DashboardLayout = () => {
         const name = readStoredText('userName', 'Staff');
         const storedRole = readStoredText('role', 'staff');
         setProfile({ name, role: formatRole(storedRole), avatarUrl: localStorage.getItem('avatarUrl') || '' });
+
+        let cancelled = false;
+        const loadProfile = async () => {
+            try {
+                const response = await authFetch('/users/me');
+                const user = await response.json();
+                if (!response.ok || cancelled) return;
+
+                const avatarUrl = user.avatar_url || '';
+                localStorage.setItem('avatarUrl', avatarUrl);
+                setProfile({
+                    name: user.name || name,
+                    role: formatRole(user.role || storedRole),
+                    avatarUrl
+                });
+            } catch {
+                // Keep the locally stored profile available if the request fails.
+            }
+        };
+
+        loadProfile();
+        return () => { cancelled = true; };
     }, []);
 
     useEffect(() => {
@@ -111,6 +133,26 @@ const DashboardLayout = () => {
                     setUnreadCount(prev => prev + 1);
 
                     lastPatientIdRef.current = latest.patient_id;
+                }
+            }
+
+            if (role === 'admin') {
+                const resetResponse = await authFetch('/api/admin/password-reset-requests');
+                const resetRequests = await resetResponse.json();
+                if (resetResponse.ok && Array.isArray(resetRequests)) {
+                    const resetNotifications = resetRequests.map((request) => ({
+                        id: `password-reset-${request.request_id}`,
+                        text: `${request.name} requested a password reset.`,
+                        action: () => {
+                            setShowNotif(false);
+                            navigate('/app/users');
+                        }
+                    }));
+                    setNotifications((previous) => [
+                        ...resetNotifications,
+                        ...previous.filter((notification) => !String(notification.id).startsWith('password-reset-'))
+                    ]);
+                    setUnreadCount(resetNotifications.length);
                 }
             }
         } catch (err) {
@@ -407,7 +449,16 @@ const DashboardLayout = () => {
                                                         '1px solid #eee'
                                                 }}
                                             >
-                                                {n.text}
+                                                <div>{n.text}</div>
+                                                {n.action && (
+                                                    <button
+                                                        type="button"
+                                                        onClick={n.action}
+                                                        style={{ marginTop: '6px', padding: 0, background: 'transparent', color: 'var(--primary)', fontSize: '12px', fontWeight: 600 }}
+                                                    >
+                                                        Review request
+                                                    </button>
+                                                )}
                                             </div>
                                         ))
                                     )}

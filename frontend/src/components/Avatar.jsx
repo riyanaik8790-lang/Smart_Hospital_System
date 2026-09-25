@@ -32,6 +32,7 @@ const getInitials = (name) => {
 const Avatar = ({ name, avatarUrl, size = 'md', className = '' }) => {
   const pixels = SIZES[size] || SIZES.md;
   const cleanName = String(name || '').trim();
+  const imageUrl = typeof avatarUrl === 'string' ? avatarUrl.trim() : '';
   const initials = getInitials(cleanName);
   const colors = PALETTE[Math.abs(hashName(cleanName || 'person')) % PALETTE.length];
 
@@ -49,12 +50,12 @@ const Avatar = ({ name, avatarUrl, size = 'md', className = '' }) => {
         fontSize: pixels >= SIZES.lg ? '20px' : pixels >= SIZES.md ? '14px' : '11px'
       }}
     >
-      {avatarUrl
+      {imageUrl
         ? <div
             className="h-10 w-10 rounded-full overflow-hidden bg-slate-100 flex-shrink-0"
             style={{ width: pixels, height: pixels }}
           >
-            <img src={avatarUrl} alt="" className="object-cover h-full w-full" />
+            <img src={imageUrl} alt={cleanName ? `${cleanName} avatar` : 'User avatar'} className="object-cover h-full w-full" />
           </div>
         : (initials || <UserRound size={Math.round(pixels * 0.52)} aria-hidden="true" />)}
     </span>

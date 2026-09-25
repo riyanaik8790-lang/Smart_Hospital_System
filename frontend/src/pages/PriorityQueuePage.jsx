@@ -64,7 +64,7 @@ const PriorityQueuePage = () => {
                                     <span style={{ fontSize: '12px', color: 'var(--text-gray)' }}>#{patient.patient_id}</span>
                                 </div>
                                 <div style={{ fontSize: '14px', color: 'var(--danger)', fontWeight: 500, marginBottom: '12px' }}>
-                                    Doctor: {patient.doctor_name ? <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}><Avatar name={patient.doctor_name} size="sm" />{patient.doctor_name}</span> : 'Unassigned'} | Room: {patient.room_number || 'Waiting'}
+                                    Doctor: {patient.doctor_name ? <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}><Avatar name={patient.doctor_name} avatarUrl={patient.doctor_avatar_url} size="sm" />{patient.doctor_name}</span> : 'Unassigned'} | Room: {patient.room_number || 'Waiting'}
                                 </div>
                             </div>
                         ))}
@@ -91,7 +91,7 @@ const PriorityQueuePage = () => {
                                     <span style={{ fontSize: '12px', color: 'var(--text-gray)' }}>#{patient.patient_id}</span>
                                 </div>
                                 <div style={{ fontSize: '14px', color: '#B45309', fontWeight: 500, marginBottom: '12px' }}>
-                                    Doctor: {patient.doctor_name ? <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}><Avatar name={patient.doctor_name} size="sm" />{patient.doctor_name}</span> : 'Unassigned'} | Room: {patient.room_number || 'Waiting'}
+                                    Doctor: {patient.doctor_name ? <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}><Avatar name={patient.doctor_name} avatarUrl={patient.doctor_avatar_url} size="sm" />{patient.doctor_name}</span> : 'Unassigned'} | Room: {patient.room_number || 'Waiting'}
                                 </div>
                             </div>
                         ))}
@@ -118,7 +118,7 @@ const PriorityQueuePage = () => {
                                     <span style={{ fontSize: '12px', color: 'var(--text-gray)' }}>#{patient.patient_id}</span>
                                 </div>
                                 <div style={{ fontSize: '14px', color: 'var(--success)', fontWeight: 500, marginBottom: '12px' }}>
-                                    Doctor: {patient.doctor_name ? <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}><Avatar name={patient.doctor_name} size="sm" />{patient.doctor_name}</span> : 'Unassigned'} | Room: {patient.room_number || 'Waiting'}
+                                    Doctor: {patient.doctor_name ? <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}><Avatar name={patient.doctor_name} avatarUrl={patient.doctor_avatar_url} size="sm" />{patient.doctor_name}</span> : 'Unassigned'} | Room: {patient.room_number || 'Waiting'}
                                 </div>
                             </div>
                         ))}

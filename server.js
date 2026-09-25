@@ -162,6 +162,39 @@ app.post("/api/auth/change-password", verifyToken, async (req, res) => {
   }
 });
 
+// A signed-out, non-admin staff member can request help without exposing any
+// password-reset token. Every active admin sees the pending request in-app and
+// can issue a temporary password through the existing protected admin flow.
+app.post("/api/request-reset", async (req, res) => {
+  try {
+    const email = String(req.body.email || "").trim().toLowerCase();
+    if (!email) return res.status(400).json({ message: "Please provide your staff email." });
+
+    const [users] = await db.execute(
+      "SELECT user_id, name, role, is_active FROM users WHERE LOWER(email) = $1",
+      [email]
+    );
+    const user = users[0];
+    if (!user || !user.is_active) return res.status(404).json({ message: "No active staff account found with this email." });
+    if (String(user.role).toLowerCase() === "admin") {
+      return res.status(400).json({ message: "Administrator password resets must be handled by another active administrator." });
+    }
+
+    await db.execute(
+      `INSERT INTO password_reset_requests (user_id)
+       VALUES ($1)
+       ON CONFLICT (user_id) WHERE status = 'pending'
+       DO UPDATE SET requested_at = NOW()`,
+      [user.user_id]
+    );
+
+    res.status(201).json({ message: "Password reset request sent to all active administrators." });
+  } catch (err) {
+    console.error("Password reset request error:", err);
+    res.status(500).json({ message: "Unable to submit password reset request." });
+  }
+});
+
 // =====================================================
 // DASHBOARD
 // =====================================================
@@ -938,10 +971,32 @@ app.post("/api/admin/force-reset", verifyToken, requireRole("admin"), async (req
       "UPDATE users SET password = $1, must_change_password = TRUE WHERE user_id = $2",
       [hashedPassword, userId]
     );
+    await db.execute(
+      `UPDATE password_reset_requests
+       SET status = 'resolved', resolved_at = NOW(), resolved_by_user_id = $1
+       WHERE user_id = $2 AND status = 'pending'`,
+      [req.user.id, userId]
+    );
     res.json({ message: "Temporary password updated.", user: { user_id: target.user_id, name: target.name } });
   } catch (err) {
     console.error("Admin password reset error:", err);
     res.status(500).json({ message: "Unable to reset the password." });
+  }
+});
+
+app.get("/api/admin/password-reset-requests", verifyToken, requireRole("admin"), async (req, res) => {
+  try {
+    const [requests] = await db.execute(
+      `SELECT r.request_id, r.requested_at, u.user_id, u.name, u.email, u.role
+       FROM password_reset_requests r
+       JOIN users u ON u.user_id = r.user_id
+       WHERE r.status = 'pending' AND u.is_active = TRUE
+       ORDER BY r.requested_at DESC`
+    );
+    res.json(requests);
+  } catch (err) {
+    console.error("Password reset request list error:", err);
+    res.status(500).json({ message: "Unable to load password reset requests." });
   }
 });
 
@@ -1050,9 +1105,11 @@ app.get("/patients", verifyToken, async (req, res) => {
         p.status,
         p.priority_label,
         d.name AS doctor_name,
+        u.avatar_url AS doctor_avatar_url,
         r.room_number
       FROM patients p
       LEFT JOIN doctors d ON p.doctor_id = d.doctor_id
+      LEFT JOIN users u ON u.user_id::text = (to_jsonb(d) ->> 'user_id')
       LEFT JOIN rooms r ON p.room_id = r.room_id
       ORDER BY p.patient_id DESC
     `;
@@ -1077,7 +1134,8 @@ app.get("/doctors", verifyToken, async (req, res) => {
         d.specialization,
         d.status,
         d.phone,
-        d.email
+        d.email,
+        u.avatar_url
       FROM doctors d
       -- user_id was added after the original doctors table existed. Using
       -- to_jsonb keeps this read endpoint compatible until migration 002 has

@@ -151,7 +151,7 @@ const DoctorsPage = () => {
                     return (
                         <div key={doctor.doctor_id} className="card" style={{ padding: '16px', border: '1px solid var(--border)' }}>
                             <div style={{ display: 'flex', gap: '12px', alignItems: 'center', marginBottom: '12px' }}>
-                                <Avatar name={doctor.name} size="md" />
+                                <Avatar name={doctor.name} avatarUrl={doctor.avatar_url} size="md" />
                                 <div style={{ flex: 1, minWidth: 0 }}>
                                     <h3 style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-dark)', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                                         {doctor.name}

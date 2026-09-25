@@ -365,6 +365,16 @@ button {
   border-bottom: 1px solid var(--border);
 }
 
+/* This rule intentionally follows the base sidebar styles. The stylesheet's
+   `.sidebar-header { display: flex }` would otherwise override Tailwind's
+   `hidden` utility on the slide-out drawer. With no header in this range, the
+   nav menu naturally begins at the top of the mobile/tablet sidebar. */
+@media (max-width: 1023px) {
+  .sidebar .sidebar-header {
+    display: none;
+  }
+}
+
 .hospital-brand {
   display: flex;
   align-items: center;

@@ -334,7 +334,7 @@ const PatientsPage = () => {
                                             {patient.status}
                                         </span>
                                     </td>
-                                    <td>{patient.doctor_name ? <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><Avatar name={patient.doctor_name} size="sm" />{patient.doctor_name}</div> : 'Unassigned'}</td>
+                                    <td>{patient.doctor_name ? <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><Avatar name={patient.doctor_name} avatarUrl={patient.doctor_avatar_url} size="sm" />{patient.doctor_name}</div> : 'Unassigned'}</td>
                                     <td>{patient.room_number || 'Unassigned'}</td>
                                     <td>
 

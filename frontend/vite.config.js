@@ -14,6 +14,7 @@ export default defineConfig({
       '/emergency-admit': 'http://127.0.0.1:5000',
       '/discharge': 'http://127.0.0.1:5000',
       '/doctors': 'http://127.0.0.1:5000',
+      '/users': 'http://127.0.0.1:5000',
       '/rooms': 'http://127.0.0.1:5000',
       '/aoa-performance': 'http://127.0.0.1:5000',
     },
