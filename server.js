@@ -5,6 +5,7 @@ const jwt = require("jsonwebtoken");
 const PDFDocument = require("pdfkit");
 const { createClient } = require("@supabase/supabase-js");
 const SECRET_KEY = process.env.JWT_SECRET || "hospital_secret_key";
+const BCRYPT_SALT_ROUNDS = 12;
 const ROOM_CLEANING_DURATION_MS = 20 * 60 * 1000;
 
 const db = require("./db");
@@ -115,7 +116,7 @@ async function createStaffAccount(req, res) {
     // This value is returned exactly once in the successful response. Only its
     // bcrypt hash is persisted, so it cannot be retrieved later.
     const temporaryPassword = `Shs!${require("crypto").randomBytes(12).toString("base64url")}`;
-    const hashedPassword = await bcrypt.hash(temporaryPassword, 12);
+    const hashedPassword = await bcrypt.hash(temporaryPassword, BCRYPT_SALT_ROUNDS);
     const [insertResult] = await db.execute(
       "INSERT INTO users (name, email, phone, password, role, must_change_password) VALUES (?, ?, ?, ?, ?, TRUE)",
       [name.trim(), email.trim().toLowerCase(), phone, hashedPassword, role]
@@ -155,7 +156,7 @@ app.post("/api/auth/change-password", verifyToken, async (req, res) => {
       return res.status(400).json({ message: "Password must be at least 8 characters and include at least one letter and one number." });
     }
 
-    const hashedPassword = await bcrypt.hash(password, 12);
+    const hashedPassword = await bcrypt.hash(password, BCRYPT_SALT_ROUNDS);
     const [updatedUsers] = await db.execute(
       `UPDATE users
        SET password = $1, must_change_password = FALSE
@@ -1021,7 +1022,7 @@ app.put("/api/users/profile", verifyToken, async (req, res) => {
     if (newPassword) {
       const matches = await bcrypt.compare(currentPassword, account.password);
       if (!matches) return res.status(400).json({ message: "Current password is incorrect." });
-      hashedPassword = await bcrypt.hash(newPassword, 12);
+      hashedPassword = await bcrypt.hash(newPassword, BCRYPT_SALT_ROUNDS);
     }
 
     const [updated] = await db.execute(
@@ -1085,7 +1086,7 @@ app.post("/api/admin/force-reset", verifyToken, requireRole("admin"), async (req
     if (!target) return res.status(404).json({ message: "User not found." });
     if (!target.is_active) return res.status(400).json({ message: "Cannot reset the password of a deactivated account." });
 
-    const hashedPassword = await bcrypt.hash(newPassword, 12);
+    const hashedPassword = await bcrypt.hash(newPassword, BCRYPT_SALT_ROUNDS);
     await db.execute(
       "UPDATE users SET password = $1, must_change_password = TRUE WHERE user_id = $2",
       [hashedPassword, userId]

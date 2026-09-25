@@ -959,21 +959,8 @@ button {
 }
 
 .table tbody tr.password-reset-requested-user {
-  background: #fff7d6;
-  box-shadow: inset 4px 0 0 #f59e0b;
-  animation: password-reset-highlight 1.25s ease-in-out 3;
-}
-
-.password-reset-request-label {
-  display: block;
-  margin-top: 4px;
-  color: #a16207;
-  font-size: 11px;
-  font-weight: 700;
-}
-
-@keyframes password-reset-highlight {
-  50% { background: #ffed9b; }
+  background: #fffbeb;
+  box-shadow: inset 3px 0 0 #fbbf24;
 }
 
 /* Badges */
