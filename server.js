@@ -81,10 +81,19 @@ async function createStaffAccount(req, res) {
   try {
     const { name, email } = req.body;
     const role = String(req.body.role || "").trim().toLowerCase();
+    const specialty = String(req.body.specialty || "").trim();
     const allowedRoles = new Set(["admin", "doctor", "nurse", "receptionist"]);
+    const allowedSpecialties = new Set([
+      "Cardiology", "Neurology", "Orthopedics", "Pediatrics",
+      "General Medicine", "Emergency"
+    ]);
 
     if (!name?.trim() || !email?.trim() || !allowedRoles.has(role)) {
       return res.status(400).json({ message: "Please provide a name, email, and valid staff role." });
+    }
+
+    if (role === "doctor" && !allowedSpecialties.has(specialty)) {
+      return res.status(400).json({ message: "Please select a valid doctor specialty." });
     }
 
     const [existingUsers] = await db.execute(
@@ -110,8 +119,8 @@ async function createStaffAccount(req, res) {
     if (role === "doctor") {
       await db.execute(
         `INSERT INTO doctors (user_id, name, specialization, status, email)
-         VALUES ($1, $2, 'General', 'Available', $3)`,
-        [insertResult.insertId, name.trim(), email.trim().toLowerCase()]
+         VALUES ($1, $2, $3, 'Available', $4)`,
+        [insertResult.insertId, name.trim(), specialty, email.trim().toLowerCase()]
       );
     }
 

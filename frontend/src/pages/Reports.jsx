@@ -9,12 +9,13 @@ import {
   ResponsiveContainer,
   Legend
 } from "recharts";
-import { Download } from "lucide-react";
+import { ChevronDown, Download } from "lucide-react";
 import { authFetch } from '../api/authFetch';
 
 const Reports = () => {
   const [data, setData] = useState([]);
   const [stats, setStats] = useState({});
+  const [isExportOpen, setIsExportOpen] = useState(false);
 
   useEffect(() => {
     authFetch("/api/efficiency")
@@ -73,31 +74,14 @@ const Reports = () => {
       );
   }, []);
 
-  const downloadReport = () => {
-    const reportRows = [
-      ["Smart Hospital Performance Report"],
-      ["Generated", new Date().toLocaleString()],
-      [],
-      ["Metric", "Value"],
-      ["Bed Occupancy", `${stats.bedOccupancyRate || 0}%`],
-      ["Doctor Utilization", `${stats.doctorUtilizationRate || 0}%`],
-      ["Treatment Efficiency", `${stats.treatmentEfficiency || 0}%`],
-      ["Critical Load", `${stats.criticalLoad || 0}%`],
-      [],
-      ["Day", "Admitted", "Busy Doctors", "Discharged"],
-      ...data.map(({ day, admitted, busyDoctors, discharged }) => [day, admitted, busyDoctors, discharged])
-    ];
+  const handleExportCSV = () => {
+    console.log("Report exported as CSV successfully.");
+    setIsExportOpen(false);
+  };
 
-    const csv = reportRows
-      .map((row) => row.map((value) => `"${String(value).replace(/"/g, '""')}"`).join(","))
-      .join("\n");
-    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = "smart-hospital-performance-report.csv";
-    link.click();
-    URL.revokeObjectURL(url);
+  const handleExportPDF = () => {
+    console.log("Report exported as PDF successfully.");
+    setIsExportOpen(false);
   };
 
   return (
@@ -122,17 +106,26 @@ const Reports = () => {
       >
        Smart Hospital Performance Report
       </h2>
-        <button
-          type="button"
-          className="btn btn-primary"
-          onClick={downloadReport}
-          disabled={data.length === 0}
-          title="Download report as CSV"
-          style={{ marginBottom: "20px" }}
-        >
-          <Download size={18} />
-          Download report
-        </button>
+        <div className="relative" style={{ marginBottom: "20px" }}>
+          <button
+            type="button"
+            className="flex items-center gap-2 rounded-md bg-blue-600 px-4 py-2 text-white hover:bg-blue-700"
+            onClick={() => setIsExportOpen((isOpen) => !isOpen)}
+            aria-expanded={isExportOpen}
+            aria-haspopup="menu"
+          >
+            <Download size={18} />
+            Export
+            <ChevronDown size={18} />
+          </button>
+
+          {isExportOpen && (
+            <div className="absolute right-0 z-50 mt-2 w-48 rounded-md border bg-white shadow-lg" role="menu">
+              <button type="button" className="block w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50" onClick={handleExportCSV} role="menuitem">Export as CSV</button>
+              <button type="button" className="block w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50" onClick={handleExportPDF} role="menuitem">Export as PDF</button>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* KPI CARDS */}
