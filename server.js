@@ -84,8 +84,9 @@ async function createStaffAccount(req, res) {
     const specialty = String(req.body.specialty || "").trim();
     const allowedRoles = new Set(["admin", "doctor", "nurse", "receptionist"]);
     const allowedSpecialties = new Set([
-      "Cardiology", "Neurology", "Orthopedics", "Pediatrics",
-      "General Medicine", "Emergency"
+      "cardiac", "trauma", "eye", "diabetes", "neuro", "ortho",
+      "pediatric", "general", "skin", "ENT", "Puimonar", "Gastro",
+      "Oncology", "Urology", "Emergency"
     ]);
 
     if (!name?.trim() || !email?.trim() || !allowedRoles.has(role)) {

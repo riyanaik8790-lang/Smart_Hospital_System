@@ -106,23 +106,23 @@ const Reports = () => {
       >
        Smart Hospital Performance Report
       </h2>
-        <div className="relative" style={{ marginBottom: "20px" }}>
+        <div className="efficiency-export-menu" style={{ marginBottom: "20px" }}>
           <button
             type="button"
-            className="flex items-center gap-2 rounded-md bg-blue-600 px-4 py-2 text-white hover:bg-blue-700"
+            className="btn btn-primary"
             onClick={() => setIsExportOpen((isOpen) => !isOpen)}
             aria-expanded={isExportOpen}
             aria-haspopup="menu"
           >
-            <Download size={18} />
+            <Download size={16} />
             Export
-            <ChevronDown size={18} />
+            <ChevronDown size={16} aria-hidden="true" />
           </button>
 
           {isExportOpen && (
-            <div className="absolute right-0 z-50 mt-2 w-48 rounded-md border bg-white shadow-lg" role="menu">
-              <button type="button" className="block w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50" onClick={handleExportCSV} role="menuitem">Export as CSV</button>
-              <button type="button" className="block w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50" onClick={handleExportPDF} role="menuitem">Export as PDF</button>
+            <div className="efficiency-export-options" role="menu">
+              <button type="button" onClick={handleExportCSV} role="menuitem"><Download size={16} /> Export as CSV</button>
+              <button type="button" onClick={handleExportPDF} role="menuitem"><Download size={16} /> Export as PDF</button>
             </div>
           )}
         </div>

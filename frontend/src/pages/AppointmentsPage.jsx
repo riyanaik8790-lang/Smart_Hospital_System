@@ -71,7 +71,6 @@ const AppointmentsPage = () => {
   const [draggingClock, setDraggingClock] = useState(false);
   const role = (localStorage.getItem('role') || '').toLowerCase();
   const canBook = ['admin', 'receptionist'].includes(role);
-  const canUpdate = ['admin', 'doctor'].includes(role);
   const filteredAppointments = appointments.filter((appointment) => {
     const query = searchTerm.toLowerCase();
     const matchesSearch = !query || appointment.patient_name?.toLowerCase().includes(query) ||
@@ -234,11 +233,25 @@ const AppointmentsPage = () => {
     }
   };
 
-  // Placeholders for the requested table controls. Their API workflows can be
-  // connected in a follow-up change without exposing destructive actions now.
-  const handleEditAppointment = () => {};
-  const handleCancelAppointment = () => {};
-  const handleMarkCompleted = () => {};
+  const handleEdit = (id) => {
+    console.log('Editing appointment:', id);
+  };
+
+  const handleCancel = (id) => {
+    setAppointments((currentAppointments) => currentAppointments.map((appointment) =>
+      appointment.appointment_id === id
+        ? { ...appointment, status: 'Cancelled' }
+        : appointment
+    ));
+  };
+
+  const handleMarkCompleted = (id) => {
+    setAppointments((currentAppointments) => currentAppointments.map((appointment) =>
+      appointment.appointment_id === id
+        ? { ...appointment, status: 'Completed' }
+        : appointment
+    ));
+  };
 
   return (
     <>
@@ -388,9 +401,9 @@ const AppointmentsPage = () => {
                   <td><span className={`badge ${statusClass(appointment.status)}`}>{appointment.status}</span></td>
                   <td>
                     <div className="appointment-actions">
-                      <button className="btn btn-outline" type="button" onClick={() => handleEditAppointment(appointment)} aria-label={`Edit appointment ${appointment.appointment_id}`}><Pencil size={14} /> Edit</button>
-                      <button className="btn btn-danger" type="button" onClick={() => handleCancelAppointment(appointment)} aria-label={`Cancel appointment ${appointment.appointment_id}`}><XCircle size={14} /> Cancel</button>
-                      <button className="btn btn-outline" type="button" onClick={() => handleMarkCompleted(appointment)} aria-label={`Mark appointment ${appointment.appointment_id} completed`}><CheckCircle size={14} /> Mark Completed</button>
+                      <button className="btn btn-outline" type="button" onClick={() => handleEdit(appointment.appointment_id)} aria-label={`Edit appointment ${appointment.appointment_id}`}><Pencil size={14} /> Edit</button>
+                      <button className="btn btn-danger" type="button" onClick={() => handleCancel(appointment.appointment_id)} disabled={appointment.status === 'Completed' || appointment.status === 'Cancelled'} aria-label={`Cancel appointment ${appointment.appointment_id}`}><XCircle size={14} /> Cancel</button>
+                      <button className="btn btn-outline" type="button" onClick={() => handleMarkCompleted(appointment.appointment_id)} disabled={appointment.status === 'Completed' || appointment.status === 'Cancelled'} aria-label={`Mark appointment ${appointment.appointment_id} completed`}><CheckCircle size={14} /> Mark Completed</button>
                     </div>
                   </td>
                 </tr>

@@ -3,11 +3,20 @@ import { Copy, Eye, EyeOff } from 'lucide-react';
 
 const ROLES = ['Admin', 'Doctor', 'Nurse', 'Receptionist'];
 const SPECIALTIES = [
-  'Cardiology',
-  'Neurology',
-  'Orthopedics',
-  'Pediatrics',
-  'General Medicine',
+  'cardiac',
+  'trauma',
+  'eye',
+  'diabetes',
+  'neuro',
+  'ortho',
+  'pediatric',
+  'general',
+  'skin',
+  'ENT',
+  'Puimonar',
+  'Gastro',
+  'Oncology',
+  'Urology',
   'Emergency',
 ];
 
