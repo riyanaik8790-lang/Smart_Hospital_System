@@ -108,8 +108,13 @@ const DashboardLayout = () => {
 
     useEffect(() => {
         const refreshAvatar = () => setProfile((current) => current && ({ ...current, avatarUrl: localStorage.getItem('avatarUrl') || '' }));
+        const refreshProfileName = () => setProfile((current) => current && ({ ...current, name: readStoredText('userName', current.name) }));
         window.addEventListener('avatar-updated', refreshAvatar);
-        return () => window.removeEventListener('avatar-updated', refreshAvatar);
+        window.addEventListener('profile-updated', refreshProfileName);
+        return () => {
+            window.removeEventListener('avatar-updated', refreshAvatar);
+            window.removeEventListener('profile-updated', refreshProfileName);
+        };
     }, []);
 
     // ==========================

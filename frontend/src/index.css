@@ -548,6 +548,32 @@ button {
   font-size: 14px;
 }
 
+/* Dashboard greeting: explicit component styling avoids utility-class
+   overrides and keeps the white surface evenly filled to its rounded edge. */
+.welcome-banner {
+  display: flex;
+  width: 100%;
+  min-height: 112px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  margin-bottom: 24px;
+  padding: 32px !important;
+  overflow: visible;
+  border: 1px solid #f1f5f9;
+  border-radius: 16px;
+  background: #ffffff;
+  box-shadow: var(--shadow-sm);
+}
+
+@media (max-width: 640px) {
+  .welcome-banner {
+    min-height: 0;
+    gap: 16px;
+    padding: 24px !important;
+  }
+}
+
 /* Buttons */
 .btn {
   display: inline-flex;

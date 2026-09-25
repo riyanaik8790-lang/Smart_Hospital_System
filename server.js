@@ -81,6 +81,7 @@ app.post("/api/auth/login", async (req, res) => {
 async function createStaffAccount(req, res) {
   try {
     const { name, email } = req.body;
+    const phone = String(req.body.phone || "").trim();
     const role = String(req.body.role || "").trim().toLowerCase();
     const specialty = String(req.body.specialty || "").trim();
     const allowedRoles = new Set(["admin", "doctor", "nurse", "receptionist"]);
@@ -92,6 +93,10 @@ async function createStaffAccount(req, res) {
 
     if (!name?.trim() || !email?.trim() || !allowedRoles.has(role)) {
       return res.status(400).json({ message: "Please provide a name, email, and valid staff role." });
+    }
+
+    if (!/^\d{10}$/.test(phone)) {
+      return res.status(400).json({ message: "Phone number must be exactly 10 digits." });
     }
 
     if (role === "doctor" && !allowedSpecialties.has(specialty)) {
@@ -112,24 +117,24 @@ async function createStaffAccount(req, res) {
     const temporaryPassword = `Shs!${require("crypto").randomBytes(12).toString("base64url")}`;
     const hashedPassword = await bcrypt.hash(temporaryPassword, 12);
     const [insertResult] = await db.execute(
-      "INSERT INTO users (name, email, password, role, must_change_password) VALUES (?, ?, ?, ?, TRUE)",
-      [name.trim(), email.trim().toLowerCase(), hashedPassword, role]
+      "INSERT INTO users (name, email, phone, password, role, must_change_password) VALUES (?, ?, ?, ?, ?, TRUE)",
+      [name.trim(), email.trim().toLowerCase(), phone, hashedPassword, role]
     );
 
     // Keep staff identity and doctor assignment linked so account safeguards
     // can find a doctor's appointments and admitted patients later.
     if (role === "doctor") {
       await db.execute(
-        `INSERT INTO doctors (user_id, name, specialization, status, email)
-         VALUES ($1, $2, $3, 'Available', $4)`,
-        [insertResult.insertId, name.trim(), specialty, email.trim().toLowerCase()]
+        `INSERT INTO doctors (user_id, name, specialization, status, email, phone)
+         VALUES ($1, $2, $3, 'Available', $4, $5)`,
+        [insertResult.insertId, name.trim(), specialty, email.trim().toLowerCase(), phone]
       );
     }
 
     res.status(201).json({
       message: "Staff account created.",
       temporaryPassword,
-      user: { user_id: insertResult.insertId, name: name.trim(), email: email.trim().toLowerCase(), role, is_active: true, must_change_password: true }
+      user: { user_id: insertResult.insertId, name: name.trim(), email: email.trim().toLowerCase(), phone, role, is_active: true, must_change_password: true }
     });
   } catch (err) {
     console.error("Staff account creation error:", err);
@@ -970,7 +975,7 @@ app.get("/users", verifyToken, requireRole("admin"), async (req, res) => {
 app.get("/users/me", verifyToken, async (req, res) => {
   try {
     const [users] = await db.execute(
-      "SELECT user_id, name, email, role, avatar_url FROM users WHERE user_id = $1 AND is_active = TRUE",
+      "SELECT user_id, name, email, phone, role, avatar_url FROM users WHERE user_id = $1 AND is_active = TRUE",
       [req.user.id]
     );
     if (!users.length) return res.status(404).json({ message: "Active user account not found." });
@@ -978,6 +983,57 @@ app.get("/users/me", verifyToken, async (req, res) => {
   } catch (err) {
     console.error("Get user profile error:", err);
     res.status(500).json({ message: "Unable to load user profile." });
+  }
+});
+
+app.put("/api/users/profile", verifyToken, async (req, res) => {
+  try {
+    const name = String(req.body.name || "").trim();
+    const phone = String(req.body.phone || "").trim();
+    const currentPassword = typeof req.body.currentPassword === "string" ? req.body.currentPassword : "";
+    const newPassword = typeof req.body.newPassword === "string" ? req.body.newPassword : "";
+
+    if (!name) return res.status(400).json({ message: "Full name is required." });
+    if (!/^\d{10}$/.test(phone)) {
+      return res.status(400).json({ message: "Phone number must be exactly 10 digits." });
+    }
+    if (newPassword && !currentPassword) {
+      return res.status(400).json({ message: "Enter your current password to set a new password." });
+    }
+    if (newPassword && (newPassword.length < 8 || !/[A-Za-z]/.test(newPassword) || !/\d/.test(newPassword))) {
+      return res.status(400).json({ message: "New password must have at least 8 characters, including a letter and a number." });
+    }
+
+    const [users] = await db.execute(
+      "SELECT user_id, password FROM users WHERE user_id = $1 AND is_active = TRUE",
+      [req.user.id]
+    );
+    const account = users[0];
+    if (!account) return res.status(404).json({ message: "Active user account not found." });
+
+    let hashedPassword = null;
+    if (newPassword) {
+      const matches = await bcrypt.compare(currentPassword, account.password);
+      if (!matches) return res.status(400).json({ message: "Current password is incorrect." });
+      hashedPassword = await bcrypt.hash(newPassword, 12);
+    }
+
+    const [updated] = await db.execute(
+      `UPDATE users
+       SET name = $1,
+           phone = $2,
+           password = COALESCE($3, password),
+           must_change_password = CASE WHEN $3 IS NULL THEN must_change_password ELSE FALSE END
+       WHERE user_id = $4 AND is_active = TRUE
+       RETURNING user_id, name, email, phone, role, avatar_url`,
+      [name, phone, hashedPassword, req.user.id]
+    );
+
+    await db.execute("UPDATE doctors SET name = $1, phone = $2 WHERE user_id = $3", [name, phone, req.user.id]);
+    res.json({ message: newPassword ? "Profile and password updated." : "Profile updated.", user: updated[0] });
+  } catch (err) {
+    console.error("Update user profile error:", err);
+    res.status(500).json({ message: "Unable to update profile." });
   }
 });
 

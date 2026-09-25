@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { ShieldCheck, UserX } from 'lucide-react';
+import { KeyRound, Save, ShieldCheck, UserRound, UserX } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import Avatar from '../components/Avatar';
 import AvatarSelectionModal from '../components/AvatarSelectionModal';
@@ -13,9 +13,13 @@ function ProfilePage() {
   const [isOnlyActiveAdmin, setIsOnlyActiveAdmin] = useState(false);
   const [statusError, setStatusError] = useState('');
   const [avatarModalOpen, setAvatarModalOpen] = useState(false);
+  const [profileSaving, setProfileSaving] = useState(false);
+  const [profileMessage, setProfileMessage] = useState(null);
+  const [passwordFields, setPasswordFields] = useState({ currentPassword: '', newPassword: '' });
   const [user, setUser] = useState({
     userId: null,
     name: localStorage.getItem('userName') || 'My account',
+    phone: '',
     role: localStorage.getItem('role') || 'staff',
     avatarUrl: localStorage.getItem('avatarUrl') || ''
   });
@@ -26,7 +30,7 @@ function ProfilePage() {
         const response = await authFetch('/users/me');
         const data = await response.json();
         if (!response.ok) throw new Error(data.message || 'Unable to load profile.');
-        setUser({ userId: data.user_id, name: data.name, role: data.role, avatarUrl: data.avatar_url || '' });
+        setUser({ userId: data.user_id, name: data.name, phone: data.phone || '', role: data.role, avatarUrl: data.avatar_url || '' });
         localStorage.setItem('avatarUrl', data.avatar_url || '');
       } catch (error) {
         setStatusError(error.message);
@@ -76,6 +80,36 @@ function ProfilePage() {
     localStorage.setItem('avatarUrl', avatarUrl);
     window.dispatchEvent(new Event('avatar-updated'));
     setAvatarModalOpen(false);
+  };
+
+  const saveProfile = async (event) => {
+    event.preventDefault();
+    setProfileMessage(null);
+    if (!/^\d{10}$/.test(user.phone)) {
+      setProfileMessage({ type: 'error', text: 'Phone number must be exactly 10 digits.' });
+      return;
+    }
+
+    setProfileSaving(true);
+    try {
+      const response = await authFetch('/api/users/profile', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: user.name, phone: user.phone, ...passwordFields })
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.message || 'Unable to update profile.');
+
+      setUser((current) => ({ ...current, ...data.user }));
+      localStorage.setItem('userName', data.user.name);
+      window.dispatchEvent(new Event('profile-updated'));
+      setPasswordFields({ currentPassword: '', newPassword: '' });
+      setProfileMessage({ type: 'success', text: data.message });
+    } catch (error) {
+      setProfileMessage({ type: 'error', text: error.message });
+    } finally {
+      setProfileSaving(false);
+    }
   };
 
   return (
@@ -129,6 +163,31 @@ function ProfilePage() {
           </div>
         </div>
       </div>
+
+      <form onSubmit={saveProfile} className="mt-6 rounded-2xl border border-slate-100 bg-white p-6 shadow-sm">
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '20px' }}>
+          <UserRound size={20} color="var(--primary)" />
+          <div><h2 style={{ margin: 0, fontSize: '18px', color: 'var(--text-dark)' }}>Personal Information</h2><p className="help-text">Keep your account details up to date.</p></div>
+        </div>
+        <div className="form-grid">
+          <div className="input-group"><label htmlFor="profile-name">Full Name</label><input id="profile-name" className="form-control" required value={user.name} onChange={(event) => setUser((current) => ({ ...current, name: event.target.value }))} /></div>
+          <div className="input-group"><label htmlFor="profile-phone">Phone Number</label><input id="profile-phone" className="form-control" type="tel" inputMode="numeric" autoComplete="tel" required maxLength={10} pattern="[0-9]{10}" value={user.phone} onChange={(event) => setUser((current) => ({ ...current, phone: event.target.value.replace(/\D/g, '').slice(0, 10) }))} aria-describedby="profile-phone-help" /><p id="profile-phone-help" className="help-text">Enter exactly 10 digits.</p></div>
+        </div>
+
+        <div style={{ borderTop: '1px solid var(--border)', marginTop: '8px', paddingTop: '24px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '20px' }}>
+            <KeyRound size={20} color="var(--primary)" />
+            <div><h2 style={{ margin: 0, fontSize: '18px', color: 'var(--text-dark)' }}>Change Password</h2><p className="help-text">Leave these fields empty to keep your current password.</p></div>
+          </div>
+          <div className="form-grid">
+            <div className="input-group"><label htmlFor="current-password">Current Password</label><input id="current-password" className="form-control" type="password" autoComplete="current-password" value={passwordFields.currentPassword} onChange={(event) => setPasswordFields((current) => ({ ...current, currentPassword: event.target.value }))} /></div>
+            <div className="input-group"><label htmlFor="new-password">New Password</label><input id="new-password" className="form-control" type="password" autoComplete="new-password" minLength={8} value={passwordFields.newPassword} onChange={(event) => setPasswordFields((current) => ({ ...current, newPassword: event.target.value }))} /><p className="help-text">At least 8 characters, including a letter and a number.</p></div>
+          </div>
+        </div>
+
+        {profileMessage && <div className={`alert ${profileMessage.type === 'error' ? 'alert-error' : 'alert-success'}`} role="status">{profileMessage.text}</div>}
+        <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '20px' }}><button type="submit" className="btn btn-primary" disabled={profileSaving}><Save size={18} />{profileSaving ? 'Saving...' : 'Save Changes'}</button></div>
+      </form>
 
       {showModal && (
         <DeactivateAccountModal

@@ -21,7 +21,7 @@ const SPECIALTIES = [
 ];
 
 export default function CreateStaffAccountModal({ onClose, onCreate }) {
-  const [form, setForm] = useState({ name: '', email: '', role: 'Doctor', specialty: '' });
+  const [form, setForm] = useState({ name: '', email: '', phone: '', role: 'Doctor', specialty: '' });
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
@@ -30,8 +30,12 @@ export default function CreateStaffAccountModal({ onClose, onCreate }) {
 
   const submit = async (event) => {
     event.preventDefault();
-    setSaving(true);
     setError('');
+    if (!/^\d{10}$/.test(form.phone)) {
+      setError('Phone number must be exactly 10 digits.');
+      return;
+    }
+    setSaving(true);
     const result = await onCreate(form);
     setSaving(false);
     if (result?.error) return setError(result.error);
@@ -62,6 +66,7 @@ export default function CreateStaffAccountModal({ onClose, onCreate }) {
       <p style={{ color: 'var(--text-gray)', marginBottom: 20 }}>A secure temporary password will be generated and displayed once after the account is created.</p>
       <div className="input-group"><label htmlFor="staff-name">Full Name</label><input id="staff-name" className="form-control" autoFocus required value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} /></div>
       <div className="input-group"><label htmlFor="staff-email">Email</label><input id="staff-email" className="form-control" type="email" required value={form.email} onChange={(event) => setForm({ ...form, email: event.target.value })} /></div>
+      <div className="input-group"><label htmlFor="staff-phone">Phone Number</label><input id="staff-phone" className="form-control" type="tel" inputMode="numeric" autoComplete="tel" maxLength={10} pattern="[0-9]{10}" required value={form.phone} onChange={(event) => setForm({ ...form, phone: event.target.value.replace(/\D/g, '').slice(0, 10) })} aria-invalid={Boolean(form.phone) && form.phone.length !== 10} aria-describedby="staff-phone-help" /><p id="staff-phone-help" className="help-text">Enter exactly 10 digits.</p></div>
       <div className="input-group"><label htmlFor="staff-role">Role</label><select id="staff-role" className="form-control" value={form.role} onChange={(event) => setForm({ ...form, role: event.target.value, specialty: event.target.value === 'Doctor' ? form.specialty : '' })}>{ROLES.map((role) => <option key={role} value={role}>{role}</option>)}</select></div>
       {form.role === 'Doctor' && <div className="input-group"><label htmlFor="staff-specialty">Department / Specialty</label><select id="staff-specialty" className="form-control w-full rounded-md border border-gray-300 bg-white px-3 py-2" required value={form.specialty} onChange={(event) => setForm({ ...form, specialty: event.target.value })}><option value="">Select Specialty</option>{SPECIALTIES.map((specialty) => <option key={specialty} value={specialty}>{specialty}</option>)}</select></div>}
       <div className="input-group"><label htmlFor="staff-password">Temporary Password</label><input id="staff-password" className="form-control" readOnly value="Generated securely when the account is created" /></div>
