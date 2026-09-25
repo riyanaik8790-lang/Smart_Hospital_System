@@ -12,6 +12,7 @@ import Reports from './pages/Reports';
 import ProfilePage from './pages/ProfilePage';
 import AppointmentsPage from './pages/AppointmentsPage';
 import UsersPage from './pages/UsersPage';
+import SetPasswordPage from './pages/SetPasswordPage';
 
 const roleHome = {
   admin: '/app/dashboard',
@@ -22,6 +23,12 @@ const roleHome = {
 
 const RequireAuth = () => (
   localStorage.getItem('token') ? <Outlet /> : <Navigate to="/login" replace />
+);
+
+const RequirePasswordChanged = () => (
+  localStorage.getItem('mustChangePassword') === 'true'
+    ? <Navigate to="/set-password" replace />
+    : <Outlet />
 );
 
 const RequireRole = ({ roles, children }) => {
@@ -44,6 +51,8 @@ function App() {
         <Route path="/login" element={<LoginPage />} />
 
         <Route element={<RequireAuth />}>
+          <Route path="/set-password" element={<SetPasswordPage />} />
+          <Route element={<RequirePasswordChanged />}>
           <Route path="/app" element={<DashboardLayout />}>
             <Route index element={<RoleHome />} />
             <Route path="dashboard" element={<RequireRole roles={['admin']}><DashboardPage /></RequireRole>} />
@@ -56,6 +65,7 @@ function App() {
             <Route path="reports" element={<RequireRole roles={['admin']}><Reports /></RequireRole>} />
             <Route path="users" element={<RequireRole roles={['admin']}><UsersPage /></RequireRole>} />
             <Route path="profile" element={<ProfilePage />} />
+          </Route>
           </Route>
         </Route>
 

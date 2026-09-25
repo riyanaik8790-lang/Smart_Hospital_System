@@ -28,8 +28,9 @@ const LoginPage = () => {
                 localStorage.setItem('token', data.token);
                 localStorage.setItem('role', data.role);
                 localStorage.setItem('userName', data.name || 'Staff Member');
+                localStorage.setItem('mustChangePassword', String(Boolean(data.mustChangePassword)));
 
-                navigate('/app');
+                navigate(data.mustChangePassword ? '/set-password' : '/app');
             } else {
                 setError(data.message || 'Login failed');
             }

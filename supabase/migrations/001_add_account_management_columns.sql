@@ -5,7 +5,8 @@
 alter table public.users
   add column if not exists is_active boolean not null default true,
   add column if not exists deleted_at timestamptz,
-  add column if not exists auth_user_id uuid unique;
+  add column if not exists auth_user_id uuid unique,
+  add column if not exists must_change_password boolean not null default false;
 
 update public.users
 set is_active = true

@@ -20,7 +20,7 @@ async function verifyToken(req, res, next) {
 
   try {
     const [users] = await db.execute(
-      "SELECT is_active, role FROM users WHERE user_id = $1",
+      "SELECT is_active, role, must_change_password FROM users WHERE user_id = $1",
       [req.user.id]
     );
     if (!users.length || !users[0].is_active) {
@@ -29,6 +29,14 @@ async function verifyToken(req, res, next) {
     // Authorization must follow the current database role, not a stale JWT
     // claim left over after an Admin changes someone's role.
     req.user.role = users[0].role;
+    req.user.mustChangePassword = Boolean(users[0].must_change_password);
+
+    // A temporary-password session is restricted to this endpoint until the
+    // staff member sets a private password. This is server-side, so changing
+    // the browser route or local storage cannot bypass it.
+    if (req.user.mustChangePassword && !(req.method === "POST" && req.path === "/api/auth/change-password")) {
+      return res.status(403).json({ message: "A new password is required before accessing the system.", code: "PASSWORD_CHANGE_REQUIRED" });
+    }
     next();
   } catch (err) {
     console.error("Authenticated user lookup failed:", err);

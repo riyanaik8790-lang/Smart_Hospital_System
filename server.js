@@ -53,7 +53,8 @@ app.post("/api/auth/login", async (req, res) => {
       message: "Login Successful",
       token,
       role: user.role,
-      name: user.name
+      name: user.name,
+      mustChangePassword: Boolean(user.must_change_password)
     });
   } catch (err) {
     console.error("Login Error:", err);
@@ -66,7 +67,7 @@ app.post("/api/auth/login", async (req, res) => {
 // =====================================================
 async function createStaffAccount(req, res) {
   try {
-    const { name, email, password } = req.body;
+    const { name, email } = req.body;
     const role = String(req.body.role || "").trim().toLowerCase();
     const allowedRoles = new Set(["admin", "doctor", "nurse", "receptionist"]);
 
@@ -74,30 +75,21 @@ async function createStaffAccount(req, res) {
       return res.status(400).json({ message: "Please provide a name, email, and valid staff role." });
     }
 
-    const hasValidPassword =
-      typeof password === "string" &&
-      password.length >= 8 &&
-      /[A-Za-z]/.test(password) &&
-      /\d/.test(password);
-
-    if (!hasValidPassword) {
-      return res.status(400).json({
-        message: "Password must be at least 8 characters and include at least one letter and one number."
-      });
-    }
-
     const [existingUsers] = await db.execute(
       "SELECT user_id FROM users WHERE email=?",
-      [email]
+      [email.trim().toLowerCase()]
     );
 
     if (existingUsers && existingUsers.length > 0) {
       return res.status(409).json({ message: "Email already registered" });
     }
 
-    const hashedPassword = await bcrypt.hash(password, 10);
+    // This value is returned exactly once in the successful response. Only its
+    // bcrypt hash is persisted, so it cannot be retrieved later.
+    const temporaryPassword = `Shs!${require("crypto").randomBytes(12).toString("base64url")}`;
+    const hashedPassword = await bcrypt.hash(temporaryPassword, 12);
     const [insertResult] = await db.execute(
-      "INSERT INTO users (name, email, password, role) VALUES (?, ?, ?, ?)",
+      "INSERT INTO users (name, email, password, role, must_change_password) VALUES (?, ?, ?, ?, TRUE)",
       [name.trim(), email.trim().toLowerCase(), hashedPassword, role]
     );
 
@@ -113,7 +105,8 @@ async function createStaffAccount(req, res) {
 
     res.status(201).json({
       message: "Staff account created.",
-      user: { user_id: insertResult.insertId, name: name.trim(), email: email.trim().toLowerCase(), role, is_active: true }
+      temporaryPassword,
+      user: { user_id: insertResult.insertId, name: name.trim(), email: email.trim().toLowerCase(), role, is_active: true, must_change_password: true }
     });
   } catch (err) {
     console.error("Staff account creation error:", err);
@@ -121,10 +114,30 @@ async function createStaffAccount(req, res) {
   }
 }
 
-// Both the current staff endpoint and the legacy registration endpoint are
-// protected. A browser without an active Admin token cannot create accounts.
-app.post("/users", verifyToken, requireRole("admin"), createStaffAccount);
-app.post("/api/auth/register", verifyToken, requireRole("admin"), createStaffAccount);
+// Account provisioning is deliberately available only through this
+// authenticated, database-role-checked Admin endpoint. There is no public
+// registration route.
+app.post("/api/users", verifyToken, requireRole("admin"), createStaffAccount);
+
+app.post("/api/auth/change-password", verifyToken, async (req, res) => {
+  try {
+    const { password } = req.body;
+    const hasValidPassword = typeof password === "string" && password.length >= 8 && /[A-Za-z]/.test(password) && /\d/.test(password);
+    if (!hasValidPassword) {
+      return res.status(400).json({ message: "Password must be at least 8 characters and include at least one letter and one number." });
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 12);
+    await db.execute(
+      "UPDATE users SET password = ?, must_change_password = FALSE WHERE user_id = ?",
+      [hashedPassword, req.user.id]
+    );
+    res.json({ message: "Password updated.", mustChangePassword: false });
+  } catch (err) {
+    console.error("Password change error:", err);
+    res.status(500).json({ message: "Unable to update password." });
+  }
+});
 
 // =====================================================
 // DASHBOARD
@@ -742,7 +755,7 @@ async function deactivateAccount(req, res, targetUserId) {
 app.get("/users", verifyToken, requireRole("admin"), async (req, res) => {
   try {
     const [users] = await db.execute(
-      "SELECT user_id, name, email, role, is_active, deleted_at, created_at FROM users ORDER BY is_active DESC, created_at DESC"
+      "SELECT user_id, name, email, role, is_active, must_change_password, deleted_at, created_at FROM users ORDER BY is_active DESC, created_at DESC"
     );
     res.json(users);
   } catch (err) {
