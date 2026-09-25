@@ -329,7 +329,10 @@ const PatientsPage = () => {
                                     <td>
 
                                         {patient.status === 'Discharged' ? (
-                                            <span style={{ fontSize: '12px', color: 'var(--text-light)', fontStyle: 'italic' }}>Discharged ✅</span>
+                                            <div className="flex items-center justify-center gap-2 text-gray-500 font-medium">
+                                                <CheckCircle size={16} className="text-green-600" aria-hidden="true" />
+                                                <span>Discharged</span>
+                                            </div>
                                         ) : dischargingId === patient.patient_id ? (
                                             <button className="btn btn-outline" style={{ padding: '6px 12px', fontSize: '12px', opacity: 0.7 }} disabled>
                                                 Discharging...
