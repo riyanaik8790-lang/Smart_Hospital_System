@@ -1,7 +1,6 @@
 import React from 'react';
 import { Activity, AlertTriangle, Bed, Stethoscope, UserCheck, Users } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import WelcomeBanner from '../components/WelcomeBanner';
 import { useRoomData } from '../contexts/RoomDataContext';
 import { useDashboardData } from '../hooks/useDashboardData';
 
@@ -24,7 +23,7 @@ function SkeletonCard() {
 export function DashboardOverview({ dashboardData, isLoading }) {
   const navigate = useNavigate();
 
-  return <div className="page-container"><div className="page-header"><div><h1 className="page-title">Dashboard Overview</h1><p className="page-subtitle">Live hospital activity</p></div><button className="btn btn-primary" onClick={() => navigate('/app/reports')}>Generate Report</button></div><WelcomeBanner /><div className="stats-grid">{isLoading ? Array.from({ length: 6 }, (_, index) => <SkeletonCard key={index} />) : <><StatCard icon={<Users />} label="Total Patients" value={dashboardData.totalPatients} /><StatCard icon={<UserCheck />} label="Admitted Patients" value={dashboardData.admittedPatients} /><StatCard icon={<AlertTriangle />} label="Critical Cases" value={dashboardData.criticalPatients} variant="danger" /><StatCard icon={<Stethoscope />} label="Available Doctors" value={dashboardData.availableDoctors} variant="success" /><StatCard icon={<Bed />} label="Available Rooms" value={dashboardData.availableRooms} variant="success" /><StatCard icon={<Activity />} label="Emergency Rooms" value={dashboardData.emergencyAvailable} variant="danger" /></>}</div></div>;
+  return <div className="page-container"><div className="page-header"><div><h1 className="page-title">Dashboard Overview</h1><p className="page-subtitle">Live hospital activity</p></div><button className="btn btn-primary" onClick={() => navigate('/app/reports')}>Generate Report</button></div><div className="stats-grid">{isLoading ? Array.from({ length: 6 }, (_, index) => <SkeletonCard key={index} />) : <><StatCard icon={<Users />} label="Total Patients" value={dashboardData.totalPatients} /><StatCard icon={<UserCheck />} label="Admitted Patients" value={dashboardData.admittedPatients} /><StatCard icon={<AlertTriangle />} label="Critical Cases" value={dashboardData.criticalPatients} variant="danger" /><StatCard icon={<Stethoscope />} label="Available Doctors" value={dashboardData.availableDoctors} variant="success" /><StatCard icon={<Bed />} label="Available Rooms" value={dashboardData.availableRooms} variant="success" /><StatCard icon={<Activity />} label="Emergency Rooms" value={dashboardData.emergencyAvailable} variant="danger" /></>}</div></div>;
 }
 
 export default function DashboardPage() {

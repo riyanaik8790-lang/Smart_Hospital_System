@@ -553,6 +553,23 @@ button {
   padding-bottom: 24px;
 }
 
+.page-greeting {
+  margin: 0 0 12px;
+}
+
+.page-greeting-title {
+  margin: 0;
+  color: var(--text-dark);
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.page-greeting-subtitle {
+  margin: 4px 0 0;
+  color: var(--text-gray);
+  font-size: 13px;
+}
+
 .profile-page .section-card,
 .profile-page form {
   min-width: 0;

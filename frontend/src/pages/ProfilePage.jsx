@@ -104,11 +104,21 @@ function ProfilePage() {
       if (!response.ok) {
         throw new Error(data?.message || 'Unable to update profile. Please try again.');
       }
+      if (!data?.user) {
+        throw new Error('Profile update did not return the saved account details. Please try again.');
+      }
 
-      setUser((current) => ({ ...current, ...data.user }));
+      setUser((current) => ({
+        ...current,
+        ...data.user,
+        name: data.user.name ?? current.name,
+        phone: String(data.user.phone ?? current.phone)
+      }));
       localStorage.setItem('userName', data.user.name);
       window.dispatchEvent(new Event('profile-updated'));
       setPasswordFields({ currentPassword: '', newPassword: '' });
+      setShowCurrentPassword(false);
+      setShowNewPassword(false);
       setProfileMessage({ type: 'success', text: data.message });
     } catch (error) {
       setProfileMessage({ type: 'error', text: error.message });

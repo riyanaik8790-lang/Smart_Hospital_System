@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Outlet, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { authFetch } from '../api/authFetch';
 import Avatar from '../components/Avatar';
+import PageGreeting from '../components/PageGreeting';
 import { RoomDataProvider } from '../contexts/RoomDataContext';
 import {
     LayoutDashboard,
@@ -564,6 +565,7 @@ const DashboardLayout = () => {
 
                 {/* PAGE CONTENT */}
                 <div className="page-content">
+                    <PageGreeting />
                     <Outlet />
                 </div>
             </div>
