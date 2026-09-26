@@ -876,12 +876,7 @@ app.put("/appointments/:appointment_id", verifyToken, requireRole("admin", "doct
         return res.status(400).json({ message: "Provide a valid doctor, date, and appointment time." });
       }
 
-      const today = new Date();
-      const todayDate = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
-      if (appointment_date > todayDate) {
-        return res.status(400).json({ message: "Appointment date cannot be later than today." });
-      }
-      if (appointmentDateTime(appointment_date, normalizedTime) <= today) {
+      if (appointmentDateTime(appointment_date, normalizedTime) <= new Date()) {
         return res.status(400).json({ message: "Cannot save an appointment in the past." });
       }
 

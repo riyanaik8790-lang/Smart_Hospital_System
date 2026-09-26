@@ -47,6 +47,12 @@ const localDateTime = (date, time) => {
   return new Date(year, month - 1, day, hour, minute, 0, 0);
 };
 
+const formatAppointmentDate = (date) => {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date || '')) return date || '—';
+  const [year, month, day] = date.split('-');
+  return `${day}-${month}-${year}`;
+};
+
 const formatTime = (time) => {
   if (!/^\d{2}:\d{2}$/.test(time || '')) return 'Select a time';
   const [hour, minute] = time.split(':').map(Number);
@@ -499,7 +505,7 @@ const AppointmentsPage = () => {
                   <td>#{appointment.appointment_id}</td>
                   <td><div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><Avatar name={appointment.patient_name} size="sm" /><div><strong>{appointment.patient_name}</strong><br /><span className="help-text">{appointment.patient_phone || 'No phone'}</span></div></div></td>
                   <td>{appointment.doctor_name ? <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><Avatar name={appointment.doctor_name} size="sm" />{appointment.doctor_name}</div> : 'Unassigned'}</td>
-                  <td>{appointment.appointment_date}</td>
+                  <td>{formatAppointmentDate(appointment.appointment_date)}</td>
                   <td>{appointment.appointment_time}</td>
                   <td>{appointment.reason || '—'}</td>
                   <td><span className={`badge ${statusClass(appointment.status)}`}>{appointment.status}</span></td>
@@ -542,7 +548,6 @@ const AppointmentsPage = () => {
                 <div className="input-group">
                   <label htmlFor="edit-date">Date *</label>
                   <input id="edit-date" className="form-control" name="appointment_date" value={editForm.appointment_date} onChange={handleEditChange} type="date" min={localToday()} required />
-                  <p className="help-text">Select today ({localToday()}) or a future date.</p>
                 </div>
                 <div className="input-group">
                   <label htmlFor="edit-time">Time *</label>
