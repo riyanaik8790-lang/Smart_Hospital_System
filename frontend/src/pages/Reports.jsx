@@ -68,7 +68,8 @@ const createDailyTrendSeries = (startDate, endDate, metrics) => {
 const Reports = () => {
   const location = useLocation();
   const isMobile = useMediaQuery('(max-width: 767px)');
-  const [data, setData] = useState([]);
+  // The chart and both exports use this single live trend series.
+  const [chartData, setChartData] = useState([]);
   const [stats, setStats] = useState({});
   const [dateRange, setDateRange] = useState(() => {
     const routeRange = location.state?.dateRange;
@@ -133,11 +134,11 @@ const Reports = () => {
         const response = await authFetch(`/api/reports/trends?${params}`);
         const trends = await response.json();
         if (!response.ok) throw new Error(trends.message || 'Unable to load trends.');
-        if (isCurrent) setData(createDailyTrendSeries(dateRange.startDate, cappedEndDate, trends));
+        if (isCurrent) setChartData(createDailyTrendSeries(dateRange.startDate, cappedEndDate, trends));
         return;
       }
 
-      if (isCurrent) setData([]);
+      if (isCurrent) setChartData([]);
     };
 
     loadTrends().catch((error) => console.error("Error loading date-range trends:", error));
@@ -162,7 +163,7 @@ const Reports = () => {
         [],
         ["Hospital Trends"],
         ["Date", "Admitted", "Busy Doctors", "Discharged"],
-        ...data.map(({ date, admitted, busyDoctors, discharged }) => [date, admitted, busyDoctors, discharged])
+        ...chartData.map(({ date, admitted, busyDoctors, discharged }) => [date, admitted, busyDoctors, discharged])
       ];
       downloadBlob(
         new Blob([rows.map((row) => row.map(csvCell).join(",")).join("\r\n")], { type: "text/csv;charset=utf-8" }),
@@ -181,7 +182,12 @@ const Reports = () => {
     setExporting("pdf");
     setExportError("");
     try {
-      const response = await authFetch("/api/reports/performance/pdf");
+      const params = new URLSearchParams({
+        startDate: dateRange.startDate || "",
+        endDate: dateRange.endDate || ""
+      });
+      // The server uses these values to load the same date-range series as the UI.
+      const response = await authFetch(`/api/reports/performance/pdf?${params}`);
       if (!response.ok) {
         const message = response.headers.get("content-type")?.includes("application/json")
           ? (await response.json()).message
@@ -329,7 +335,7 @@ const Reports = () => {
           width="100%"
           height={350}
         >
-          <LineChart data={data} margin={isMobile ? { top: 10, right: 30, left: -20, bottom: 0 } : undefined}>
+          <LineChart data={chartData} margin={isMobile ? { top: 10, right: 30, left: -20, bottom: 0 } : undefined}>
             <CartesianGrid strokeDasharray="3 3" />
 
             <XAxis dataKey="label" tick={{ fontSize: 10 }} interval="preserveStartEnd" minTickGap={15} />

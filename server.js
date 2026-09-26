@@ -622,20 +622,50 @@ app.get("/api/reports/efficiency/pdf", verifyToken, requireRole("admin"), async 
   }
 });
 
-// The Reports page intentionally uses these fixed weekly trend values. Keep the
-// exported PDF aligned with the chart displayed in that page.
-const performanceWeeklyTrends = [
-  { day: "Mon", admitted: 2, busyDoctors: 2, discharged: 0 },
-  { day: "Tue", admitted: 1, busyDoctors: 1, discharged: 0 },
-  { day: "Wed", admitted: 3, busyDoctors: 3, discharged: 1 },
-  { day: "Thu", admitted: 4, busyDoctors: 4, discharged: 1 },
-  { day: "Fri", admitted: 5, busyDoctors: 5, discharged: 2 },
-  { day: "Sat", admitted: 4, busyDoctors: 4, discharged: 3 },
-  { day: "Sun", admitted: 2, busyDoctors: 2, discharged: 4 }
-];
-
 app.get("/api/reports/performance/pdf", verifyToken, requireRole("admin"), async (req, res) => {
   try {
+    const startDate = String(req.query.startDate || '');
+    const requestedEndDate = String(req.query.endDate || '');
+    if (!isValidReportDate(startDate) || !isValidReportDate(requestedEndDate)) {
+      return res.status(400).json({ message: "startDate and endDate must use valid YYYY-MM-DD values." });
+    }
+
+    const today = new Date();
+    const currentDate = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+    const endDate = requestedEndDate > currentDate ? currentDate : requestedEndDate;
+    if (startDate > endDate) {
+      return res.status(400).json({ message: "The start date must not be after the current date." });
+    }
+
+    const [trendRows] = await db.execute(
+      `WITH report_days AS (
+         SELECT generate_series($1::date, $2::date, INTERVAL '1 day')::date AS date
+       )
+       SELECT
+         TO_CHAR(report_days.date, 'YYYY-MM-DD') AS date,
+         COUNT(p.patient_id) FILTER (WHERE p.created_at::date = report_days.date)::int AS admitted,
+         COUNT(p.patient_id) FILTER (WHERE p.discharged_at::date = report_days.date)::int AS discharged,
+         COUNT(DISTINCT p.doctor_id) FILTER (
+           WHERE p.doctor_id IS NOT NULL
+             AND p.created_at::date <= report_days.date
+             AND (
+               (p.discharged_at IS NULL AND LOWER(p.status) <> 'discharged')
+               OR p.discharged_at::date > report_days.date
+             )
+         )::int AS "busyDoctors"
+       FROM report_days
+       LEFT JOIN patients p ON p.created_at::date <= report_days.date
+       GROUP BY report_days.date
+       ORDER BY report_days.date ASC`,
+      [startDate, endDate]
+    );
+    const chartData = trendRows.map((point) => ({
+      date: point.date,
+      label: new Date(`${point.date}T00:00:00`).toLocaleDateString(undefined, { month: 'short', day: '2-digit' }),
+      admitted: Number(point.admitted) || 0,
+      discharged: Number(point.discharged) || 0,
+      busyDoctors: Number(point.busyDoctors) || 0
+    }));
     const stats = await getEfficiencyStats();
     const generatedAt = new Date();
     const fileDate = generatedAt.toISOString().replace(/[:.]/g, "-").slice(0, 16);
@@ -664,8 +694,12 @@ app.get("/api/reports/performance/pdf", verifyToken, requireRole("admin"), async
       document.fontSize(18).fillColor("#111827").text(`${value}%`, x + 14, cardY + 34);
     });
 
-    document.fontSize(14).fillColor("#111827").text("Weekly Hospital Trends", 40, 215);
-    const chart = { x: 70, y: 260, width: 470, height: 270, max: 8 };
+    const formatReportDate = (date) => new Date(`${date}T00:00:00`).toLocaleDateString(undefined, {
+      month: 'short', day: '2-digit', year: 'numeric'
+    });
+    document.fontSize(14).fillColor("#111827").text(`Trends: ${formatReportDate(startDate)} - ${formatReportDate(endDate)}`, 40, 215);
+    const largestValue = Math.max(0, ...chartData.flatMap((point) => [point.admitted, point.busyDoctors, point.discharged]));
+    const chart = { x: 70, y: 260, width: 470, height: 270, max: Math.max(2, Math.ceil(largestValue / 2) * 2) };
     document.strokeColor("#d1d5db").lineWidth(0.5);
     for (let value = 0; value <= chart.max; value += 2) {
       const y = chart.y + chart.height - (value / chart.max) * chart.height;
@@ -674,19 +708,19 @@ app.get("/api/reports/performance/pdf", verifyToken, requireRole("admin"), async
     }
     document.moveTo(chart.x, chart.y).lineTo(chart.x, chart.y + chart.height).lineTo(chart.x + chart.width, chart.y + chart.height).strokeColor("#6b7280").stroke();
 
-    const xForIndex = (index) => chart.x + (index * chart.width) / (performanceWeeklyTrends.length - 1);
-    performanceWeeklyTrends.forEach((point, index) => {
-      document.fontSize(8).fillColor("#6b7280").text(point.day, xForIndex(index) - 12, chart.y + chart.height + 8, { width: 24, align: "center" });
+    const xForIndex = (index) => chart.x + (chartData.length === 1 ? chart.width / 2 : (index * chart.width) / (chartData.length - 1));
+    chartData.forEach((point, index) => {
+      document.fontSize(8).fillColor("#6b7280").text(point.label, xForIndex(index) - 18, chart.y + chart.height + 8, { width: 36, align: "center" });
     });
     const drawSeries = (key, color) => {
       document.strokeColor(color).lineWidth(2);
-      performanceWeeklyTrends.forEach((point, index) => {
+      chartData.forEach((point, index) => {
         const x = xForIndex(index);
         const y = chart.y + chart.height - (point[key] / chart.max) * chart.height;
         if (index === 0) document.moveTo(x, y); else document.lineTo(x, y);
       });
       document.stroke();
-      performanceWeeklyTrends.forEach((point, index) => {
+      chartData.forEach((point, index) => {
         const x = xForIndex(index);
         const y = chart.y + chart.height - (point[key] / chart.max) * chart.height;
         document.circle(x, y, 3).fillAndStroke("#ffffff", color);
