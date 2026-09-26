@@ -495,7 +495,7 @@ const AppointmentsPage = () => {
           <h2 className="section-title">Scheduled Appointments</h2>
         </div>
         <div className="table-container">
-          <table className="table">
+          <table className="table appointments-table">
             <thead>
               <tr><th>ID</th><th>Patient</th><th>Doctor</th><th>Date</th><th>Time</th><th>Reason</th><th>Status</th><th>Actions</th></tr>
             </thead>
@@ -505,7 +505,7 @@ const AppointmentsPage = () => {
                   <td>#{appointment.appointment_id}</td>
                   <td><div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><Avatar name={appointment.patient_name} size="sm" /><div><strong>{appointment.patient_name}</strong><br /><span className="help-text">{appointment.patient_phone || 'No phone'}</span></div></div></td>
                   <td>{appointment.doctor_name ? <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><Avatar name={appointment.doctor_name} size="sm" />{appointment.doctor_name}</div> : 'Unassigned'}</td>
-                  <td>{formatAppointmentDate(appointment.appointment_date)}</td>
+                  <td className="whitespace-nowrap"><span className="whitespace-nowrap">{formatAppointmentDate(appointment.appointment_date)}</span></td>
                   <td>{appointment.appointment_time}</td>
                   <td>{appointment.reason || '—'}</td>
                   <td><span className={`badge ${statusClass(appointment.status)}`}>{appointment.status}</span></td>

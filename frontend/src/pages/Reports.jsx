@@ -128,7 +128,6 @@ const Reports = () => {
     return () => { isCurrent = false; };
   }, [dateRange]);
 
-  const xAxisInterval = data.length > 14 ? Math.ceil(data.length / 7) - 1 : 0;
 
   const handleExportCSV = () => {
     setExporting("csv");
@@ -205,23 +204,22 @@ const Reports = () => {
       >
        Smart Hospital Performance Report
       </h2>
-        <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "flex-end", alignItems: "flex-end", gap: "12px", marginBottom: "20px" }}>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: "8px", alignItems: "flex-end" }} aria-label="Report date range">
-            <label className="input-group" style={{ margin: 0 }}>
+        <div className="grid grid-cols-3 gap-2 items-end md:flex md:flex-wrap md:justify-end md:gap-3" style={{ marginBottom: "20px" }} aria-label="Report date range and export options">
+            <label className="input-group min-w-0" style={{ margin: 0 }}>
               <span className="help-text">Start date</span>
               <input
                 type="date"
-                className="form-control"
+                className="form-control !min-w-0 !text-xs"
                 value={dateRange.startDate || ""}
                 max={todayInputValue()}
                 onChange={(event) => setDateRange((current) => ({ ...current, startDate: event.target.value || null }))}
               />
             </label>
-            <label className="input-group" style={{ margin: 0 }}>
+            <label className="input-group min-w-0" style={{ margin: 0 }}>
               <span className="help-text">End date</span>
               <input
                 type="date"
-                className="form-control"
+                className="form-control !min-w-0 !text-xs"
                 value={dateRange.endDate || ""}
                 min={dateRange.startDate || undefined}
                 max={todayInputValue()}
@@ -231,11 +229,10 @@ const Reports = () => {
                 })}
               />
             </label>
-          </div>
         <div className="efficiency-export-menu">
           <button
             type="button"
-            className="btn btn-primary"
+            className="btn btn-primary w-full !px-1 !py-2 !text-xs"
             onClick={() => setIsExportOpen((isOpen) => !isOpen)}
             aria-expanded={isExportOpen}
             aria-haspopup="menu"
@@ -260,12 +257,8 @@ const Reports = () => {
 
       {/* KPI CARDS */}
       <div
-        className="reports-stats"
+        className="reports-stats grid grid-cols-2 gap-3 md:grid-cols-4"
         style={{
-          display: "grid",
-          gridTemplateColumns:
-            "repeat(auto-fit, minmax(200px, 1fr))",
-          gap: "18px",
           marginBottom: "30px"
         }}
       >
@@ -323,7 +316,7 @@ const Reports = () => {
           <LineChart data={data}>
             <CartesianGrid strokeDasharray="3 3" />
 
-            <XAxis dataKey="label" interval={xAxisInterval} minTickGap={18} />
+            <XAxis dataKey="label" tick={{ fontSize: 10 }} interval="preserveStartEnd" minTickGap={15} />
 
             <YAxis />
 
@@ -370,9 +363,9 @@ const Reports = () => {
 const Card = ({ title, value, color }) => {
   return (
     <div
+      className="p-3"
       style={{
         background: "#ffffff",
-        padding: "18px",
         borderRadius: "12px",
         boxShadow:
           "0 3px 10px rgba(0,0,0,0.06)",
@@ -380,8 +373,8 @@ const Card = ({ title, value, color }) => {
       }}
     >
       <div
+        className="text-xs"
         style={{
-          fontSize: "13px",
           color: "#6b7280"
         }}
       >
@@ -389,8 +382,8 @@ const Card = ({ title, value, color }) => {
       </div>
 
       <div
+        className="text-lg"
         style={{
-          fontSize: "24px",
           fontWeight: "bold",
           marginTop: "8px",
           color: "#111827"

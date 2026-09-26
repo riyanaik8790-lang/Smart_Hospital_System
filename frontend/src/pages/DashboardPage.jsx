@@ -7,7 +7,7 @@ import { authFetch } from '../api/authFetch';
 import Avatar from '../components/Avatar';
 
 function StatCard({ icon, label, value, variant = '' }) {
-  return <div className={`stat-card ${variant}`}><div className="stat-icon">{icon}</div><div className="stat-info"><div className="stat-label">{label}</div><div className="stat-value">{value}</div></div></div>;
+  return <div className={`stat-card ${variant} !p-3 md:!p-5`}><div className="stat-icon">{icon}</div><div className="stat-info min-w-0"><div className="stat-label !text-xs">{label}</div><div className="stat-value !text-xl md:!text-[28px]">{value}</div></div></div>;
 }
 
 function SkeletonCard() {
@@ -152,15 +152,15 @@ function RecentAppointments() {
       <h2 className="section-title flex items-center gap-2"><CalendarDays size={20} /> <span>Recent Appointments</span></h2>
     </div>
     <div className="table-container">
-      <table className="table">
-        <thead><tr><th>Patient</th><th>Doctor</th><th>Date</th><th>Time</th><th>Status</th></tr></thead>
+      <table className="table dashboard-appointments-table table-fixed">
+        <thead><tr><th>Patient</th><th>Doctor</th><th className="hidden sm:table-cell">Date</th><th className="hidden sm:table-cell">Time</th><th>Status</th></tr></thead>
         <tbody>
           {loading && <tr><td colSpan="5" className="text-center">Loading appointments…</td></tr>}
           {!loading && appointments.map((appointment) => <tr key={appointment.appointment_id}>
             <td><div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><Avatar name={appointment.patient_name} size="sm" /><strong>{appointment.patient_name}</strong></div></td>
             <td>{appointment.doctor_name ? <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><Avatar name={appointment.doctor_name} size="sm" />{appointment.doctor_name}</div> : 'Unassigned'}</td>
-            <td>{appointment.appointment_date}</td>
-            <td>{appointment.appointment_time}</td>
+            <td className="hidden sm:table-cell">{appointment.appointment_date}</td>
+            <td className="hidden sm:table-cell">{appointment.appointment_time}</td>
             <td><span className="badge badge-medium">{appointment.status}</span></td>
           </tr>)}
           {!loading && !appointments.length && <tr><td colSpan="5" className="text-center">No scheduled appointments to display.</td></tr>}
@@ -173,7 +173,7 @@ function RecentAppointments() {
 export function DashboardOverview({ dashboardData, isLoading, dateRange, setDateRange }) {
   const navigate = useNavigate();
 
-  return <div className="page-container"><div className="page-header"><div><h1 className="page-title">Dashboard Overview</h1><p className="page-subtitle">Live hospital activity</p></div><div className="analytics-header-actions"><div className="analytics-date-range" aria-label="Dashboard date range"><label><span>Start date</span><input type="date" className="form-control" value={dateRange.startDate} max={today()} onChange={(event) => setDateRange((current) => ({ ...current, startDate: event.target.value, endDate: event.target.value > current.endDate ? event.target.value : current.endDate }))} /></label><label><span>End date</span><input type="date" className="form-control" value={dateRange.endDate} min={dateRange.startDate} max={today()} onChange={(event) => setDateRange((current) => ({ ...current, endDate: event.target.value }))} /></label></div><button className="btn btn-primary" onClick={() => navigate('/app/reports', { state: { dateRange } })}>Generate Report</button></div></div><div className="stats-grid">{isLoading ? Array.from({ length: 6 }, (_, index) => <SkeletonCard key={index} />) : <><StatCard icon={<Users />} label="Total Patients" value={dashboardData.totalPatients} /><StatCard icon={<UserCheck />} label="Admitted Patients" value={dashboardData.admittedPatients} /><StatCard icon={<AlertTriangle />} label="Critical Cases" value={dashboardData.criticalPatients} variant="danger" /><StatCard icon={<Stethoscope />} label="Available Doctors" value={dashboardData.availableDoctors} variant="success" /><StatCard icon={<Bed />} label="Available Rooms" value={dashboardData.availableRooms} variant="success" /><StatCard icon={<Activity />} label="Emergency Rooms" value={dashboardData.emergencyAvailable} variant="danger" /></>}</div><EfficiencyInsights dateRange={dateRange} /><RecentAppointments /></div>;
+  return <div className="page-container"><div className="page-header"><div><h1 className="page-title">Dashboard Overview</h1><p className="page-subtitle">Live hospital activity</p></div><div className="analytics-header-actions !grid grid-cols-3 gap-2 text-xs items-end md:!flex"><label><span>Start date</span><input type="date" className="form-control !min-w-0 !text-xs" value={dateRange.startDate} max={today()} onChange={(event) => setDateRange((current) => ({ ...current, startDate: event.target.value, endDate: event.target.value > current.endDate ? event.target.value : current.endDate }))} /></label><label><span>End date</span><input type="date" className="form-control !min-w-0 !text-xs" value={dateRange.endDate} min={dateRange.startDate} max={today()} onChange={(event) => setDateRange((current) => ({ ...current, endDate: event.target.value }))} /></label><button className="btn btn-primary w-full !px-2 !py-1.5 !text-xs leading-tight md:w-auto" onClick={() => navigate('/app/reports', { state: { dateRange } })}>Generate Report</button></div></div><div className="stats-grid !grid grid-cols-2 gap-3 md:grid-cols-4">{isLoading ? Array.from({ length: 6 }, (_, index) => <SkeletonCard key={index} />) : <><StatCard icon={<Users />} label="Total Patients" value={dashboardData.totalPatients} /><StatCard icon={<UserCheck />} label="Admitted Patients" value={dashboardData.admittedPatients} /><StatCard icon={<AlertTriangle />} label="Critical Cases" value={dashboardData.criticalPatients} variant="danger" /><StatCard icon={<Stethoscope />} label="Available Doctors" value={dashboardData.availableDoctors} variant="success" /><StatCard icon={<Bed />} label="Available Rooms" value={dashboardData.availableRooms} variant="success" /><StatCard icon={<Activity />} label="Emergency Rooms" value={dashboardData.emergencyAvailable} variant="danger" /></>}</div><EfficiencyInsights dateRange={dateRange} /><RecentAppointments /></div>;
 }
 
 export default function DashboardPage() {

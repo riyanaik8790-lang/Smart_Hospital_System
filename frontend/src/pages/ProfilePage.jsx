@@ -201,7 +201,7 @@ function ProfilePage() {
         <div className="profile-card-section profile-password-section">
           <div className="flex min-w-0 items-center gap-3 mb-5">
             <KeyRound className="shrink-0" size={20} color="var(--primary)" aria-hidden="true" />
-            <div className="min-w-0"><h2 style={{ margin: 0, fontSize: '18px', color: 'var(--text-dark)' }}>Change Password</h2><p className="help-text">Leave these fields empty to keep your current password.</p></div>
+            <div className="min-w-0"><h2 style={{ margin: 0, fontSize: '18px', color: 'var(--text-dark)' }}>Change Password</h2><p className="help-text"></p></div>
           </div>
           <div className="form-grid">
             <div className="input-group"><label htmlFor="current-password">Current Password</label><div className="password-field"><input id="current-password" className="form-control" type={showCurrentPassword ? 'text' : 'password'} autoComplete="current-password" value={passwordFields.currentPassword} onChange={(event) => setPasswordFields((current) => ({ ...current, currentPassword: event.target.value }))} /><button type="button" className="password-visibility-toggle" onClick={() => setShowCurrentPassword((visible) => !visible)} aria-label={showCurrentPassword ? 'Hide current password' : 'Show current password'} title={showCurrentPassword ? 'Hide password' : 'Show password'}>{showCurrentPassword ? <EyeOff size={18} aria-hidden="true" /> : <Eye size={18} aria-hidden="true" />}</button></div></div>
