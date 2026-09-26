@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Activity, AlertTriangle, Bed, Stethoscope, UserCheck, Users } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useRoomData } from '../contexts/RoomDataContext';
@@ -20,14 +20,17 @@ function SkeletonCard() {
   </div>;
 }
 
-export function DashboardOverview({ dashboardData, isLoading }) {
+const today = () => new Date().toISOString().split('T')[0];
+
+export function DashboardOverview({ dashboardData, isLoading, dateRange, setDateRange }) {
   const navigate = useNavigate();
 
-  return <div className="page-container"><div className="page-header"><div><h1 className="page-title">Dashboard Overview</h1><p className="page-subtitle">Live hospital activity</p></div><button className="btn btn-primary" onClick={() => navigate('/app/reports')}>Generate Report</button></div><div className="stats-grid">{isLoading ? Array.from({ length: 6 }, (_, index) => <SkeletonCard key={index} />) : <><StatCard icon={<Users />} label="Total Patients" value={dashboardData.totalPatients} /><StatCard icon={<UserCheck />} label="Admitted Patients" value={dashboardData.admittedPatients} /><StatCard icon={<AlertTriangle />} label="Critical Cases" value={dashboardData.criticalPatients} variant="danger" /><StatCard icon={<Stethoscope />} label="Available Doctors" value={dashboardData.availableDoctors} variant="success" /><StatCard icon={<Bed />} label="Available Rooms" value={dashboardData.availableRooms} variant="success" /><StatCard icon={<Activity />} label="Emergency Rooms" value={dashboardData.emergencyAvailable} variant="danger" /></>}</div></div>;
+  return <div className="page-container"><div className="page-header"><div><h1 className="page-title">Dashboard Overview</h1><p className="page-subtitle">Live hospital activity</p></div><div className="analytics-header-actions"><div className="analytics-date-range" aria-label="Dashboard date range"><label><span>Start date</span><input type="date" className="form-control" value={dateRange.startDate} max={today()} onChange={(event) => setDateRange((current) => ({ ...current, startDate: event.target.value, endDate: event.target.value > current.endDate ? event.target.value : current.endDate }))} /></label><label><span>End date</span><input type="date" className="form-control" value={dateRange.endDate} min={dateRange.startDate} max={today()} onChange={(event) => setDateRange((current) => ({ ...current, endDate: event.target.value }))} /></label></div><button className="btn btn-primary" onClick={() => navigate('/app/reports')}>Generate Report</button></div></div><div className="stats-grid">{isLoading ? Array.from({ length: 6 }, (_, index) => <SkeletonCard key={index} />) : <><StatCard icon={<Users />} label="Total Patients" value={dashboardData.totalPatients} /><StatCard icon={<UserCheck />} label="Admitted Patients" value={dashboardData.admittedPatients} /><StatCard icon={<AlertTriangle />} label="Critical Cases" value={dashboardData.criticalPatients} variant="danger" /><StatCard icon={<Stethoscope />} label="Available Doctors" value={dashboardData.availableDoctors} variant="success" /><StatCard icon={<Bed />} label="Available Rooms" value={dashboardData.availableRooms} variant="success" /><StatCard icon={<Activity />} label="Emergency Rooms" value={dashboardData.emergencyAvailable} variant="danger" /></>}</div></div>;
 }
 
 export default function DashboardPage() {
+  const [dateRange, setDateRange] = useState({ startDate: today(), endDate: today() });
   const { dashboardData: roomData, isLoading: isLoadingRooms } = useRoomData();
-  const { dashboardData, isLoading: isLoadingDashboard } = useDashboardData(roomData);
-  return <DashboardOverview dashboardData={dashboardData} isLoading={isLoadingRooms || isLoadingDashboard} />;
+  const { dashboardData, isLoading: isLoadingDashboard } = useDashboardData(roomData, dateRange);
+  return <DashboardOverview dashboardData={dashboardData} isLoading={isLoadingRooms || isLoadingDashboard} dateRange={dateRange} setDateRange={setDateRange} />;
 }

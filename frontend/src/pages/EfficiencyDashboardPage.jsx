@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { TrendingUp, Users, Activity, HeartPulse, BedDouble, AlertCircle, Download, LoaderCircle, ChevronDown } from 'lucide-react';
 import { authFetch } from '../api/authFetch';
 
+const today = () => new Date().toISOString().split('T')[0];
+
 // Reusable Circular Progress Component
 const CircularProgress = ({ value, label, size = 120, strokeWidth = 10, colorClass = "primary" }) => {
     const radius = (size - strokeWidth) / 2;
@@ -73,15 +75,17 @@ const EfficiencyDashboardPage = () => {
     const [exporting, setExporting] = useState('');
     const [exportMenuOpen, setExportMenuOpen] = useState(false);
     const [notification, setNotification] = useState(null);
+    const [dateRange, setDateRange] = useState(() => ({ startDate: today(), endDate: today() }));
 
     const notify = (message, type = 'success') => {
         setNotification({ message, type });
         window.setTimeout(() => setNotification(null), 4000);
     };
 
-    const fetchEfficiencyData = async () => {
+    const fetchEfficiencyData = async (range = dateRange) => {
         try {
-            const res = await authFetch('/api/efficiency');
+            const params = new URLSearchParams(range);
+            const res = await authFetch(`/api/efficiency?${params}`);
             if (res.ok) {
                 const data = await res.json();
                 setStats(data);
@@ -97,7 +101,7 @@ const EfficiencyDashboardPage = () => {
         fetchEfficiencyData();
         const interval = setInterval(fetchEfficiencyData, 3000);
         return () => clearInterval(interval);
-    }, []);
+    }, [dateRange]);
 
     // Get color dynamically based on rate
     const getRateColor = (rate, dangerThreshold, warningThreshold) => {
@@ -212,6 +216,10 @@ const EfficiencyDashboardPage = () => {
                     <p className="page-subtitle">Real-time performance and utilization metrics</p>
                 </div>
                 <div className="efficiency-action-bar">
+                    <div className="analytics-date-range" aria-label="Efficiency date range">
+                        <label><span>Start date</span><input type="date" className="form-control" value={dateRange.startDate} max={today()} onChange={(event) => setDateRange((current) => ({ ...current, startDate: event.target.value, endDate: event.target.value > current.endDate ? event.target.value : current.endDate }))} /></label>
+                        <label><span>End date</span><input type="date" className="form-control" value={dateRange.endDate} min={dateRange.startDate} max={today()} onChange={(event) => setDateRange((current) => ({ ...current, endDate: event.target.value }))} /></label>
+                    </div>
                     <span className="efficiency-live-status" aria-label="Live, auto-updating every 3 seconds">
                         <span className="efficiency-live-dot" aria-hidden="true" />
                         Live · 3s

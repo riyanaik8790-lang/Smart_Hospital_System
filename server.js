@@ -210,8 +210,31 @@ app.post("/api/request-reset", async (req, res) => {
 // =====================================================
 // DASHBOARD
 // =====================================================
+function getAnalyticsDateRange(req) {
+  const startDate = String(req.query.startDate || '');
+  const requestedEndDate = String(req.query.endDate || '');
+  if (!startDate && !requestedEndDate) return null;
+  if (!isValidReportDate(startDate) || !isValidReportDate(requestedEndDate)) {
+    const error = new Error('Start date and end date must use valid YYYY-MM-DD values.');
+    error.status = 400;
+    throw error;
+  }
+  const today = new Date();
+  const currentDate = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+  const endDate = requestedEndDate > currentDate ? currentDate : requestedEndDate;
+  if (startDate > endDate) {
+    const error = new Error('The start date must not be after the end date.');
+    error.status = 400;
+    throw error;
+  }
+  return { startDate, endDate };
+}
+
 app.get("/dashboard", verifyToken, async (req, res) => {
   try {
+    const dateRange = getAnalyticsDateRange(req);
+    const patientFilter = dateRange ? " WHERE created_at::date BETWEEN $1::date AND $2::date" : "";
+    const patientParams = dateRange ? [dateRange.startDate, dateRange.endDate] : [];
     const stats = {};
     const queries = {
       totalDoctors: "SELECT COUNT(*) AS count FROM doctors",
@@ -221,13 +244,16 @@ app.get("/dashboard", verifyToken, async (req, res) => {
       availableRooms: "SELECT COUNT(*) AS count FROM rooms WHERE LOWER(status)='available'",
       occupiedRooms: "SELECT COUNT(*) AS count FROM rooms WHERE LOWER(status)='occupied'",
       emergencyAvailable: "SELECT COUNT(*) AS count FROM rooms WHERE LOWER(type)='emergency' AND LOWER(status)='available'",
-      totalPatients: "SELECT COUNT(*) AS count FROM patients",
-      admittedPatients: "SELECT COUNT(*) AS count FROM patients WHERE LOWER(status)='admitted'",
-      criticalPatients: "SELECT COUNT(*) AS count FROM patients WHERE LOWER(priority_label)='critical' AND LOWER(status)='admitted'"
+      totalPatients: { sql: `SELECT COUNT(*) AS count FROM patients${patientFilter}`, params: patientParams },
+      admittedPatients: { sql: `SELECT COUNT(*) AS count FROM patients${patientFilter}${dateRange ? " AND" : " WHERE"} LOWER(status)='admitted'`, params: patientParams },
+      criticalPatients: { sql: `SELECT COUNT(*) AS count FROM patients${patientFilter}${dateRange ? " AND" : " WHERE"} LOWER(priority_label)='critical' AND LOWER(status)='admitted'`, params: patientParams }
     };
 
     const keys = Object.keys(queries);
-    const results = await Promise.all(keys.map(key => db.execute(queries[key])));
+    const results = await Promise.all(keys.map((key) => {
+      const query = queries[key];
+      return typeof query === 'string' ? db.execute(query) : db.execute(query.sql, query.params);
+    }));
 
     results.forEach((result, index) => {
       stats[keys[index]] = Number(result[0][0].count) || 0;
@@ -236,28 +262,33 @@ app.get("/dashboard", verifyToken, async (req, res) => {
     res.json(stats);
   } catch (err) {
     console.error("Dashboard Error:", err);
-    res.status(500).json(err);
+    res.status(err.status || 500).json({ message: err.message || 'Unable to load dashboard data.' });
   }
 });
 
 // =====================================================
 // EFFICIENCY DASHBOARD
 // =====================================================
-async function getEfficiencyStats() {
+async function getEfficiencyStats(dateRange = null) {
+  const patientFilter = dateRange ? " WHERE created_at::date BETWEEN $1::date AND $2::date" : "";
+  const patientParams = dateRange ? [dateRange.startDate, dateRange.endDate] : [];
   const stats = {};
   const queries = {
       totalDoctors: "SELECT COUNT(*) AS count FROM doctors",
       busyDoctors: "SELECT COUNT(*) AS count FROM doctors WHERE LOWER(status)='busy'",
       totalRooms: "SELECT COUNT(*) AS count FROM rooms",
       occupiedRooms: "SELECT COUNT(*) AS count FROM rooms WHERE LOWER(status)='occupied'",
-      totalPatients: "SELECT COUNT(*) AS count FROM patients",
-      admittedPatients: "SELECT COUNT(*) AS count FROM patients WHERE LOWER(status)='admitted'",
-      dischargedPatients: "SELECT COUNT(*) AS count FROM patients WHERE LOWER(status)='discharged'",
-      emergencyAdmitted: "SELECT COUNT(*) AS count FROM patients WHERE LOWER(priority_label)='critical' AND LOWER(status)='admitted'"
+      totalPatients: { sql: `SELECT COUNT(*) AS count FROM patients${patientFilter}`, params: patientParams },
+      admittedPatients: { sql: `SELECT COUNT(*) AS count FROM patients${patientFilter}${dateRange ? " AND" : " WHERE"} LOWER(status)='admitted'`, params: patientParams },
+      dischargedPatients: { sql: `SELECT COUNT(*) AS count FROM patients${patientFilter}${dateRange ? " AND" : " WHERE"} LOWER(status)='discharged'`, params: patientParams },
+      emergencyAdmitted: { sql: `SELECT COUNT(*) AS count FROM patients${patientFilter}${dateRange ? " AND" : " WHERE"} LOWER(priority_label)='critical' AND LOWER(status)='admitted'`, params: patientParams }
   };
 
   const keys = Object.keys(queries);
-  const results = await Promise.all(keys.map(key => db.execute(queries[key])));
+  const results = await Promise.all(keys.map((key) => {
+    const query = queries[key];
+    return typeof query === 'string' ? db.execute(query) : db.execute(query.sql, query.params);
+  }));
 
   results.forEach((result, index) => {
     // node-postgres returns PostgreSQL COUNT(*) values as strings.
@@ -306,13 +337,13 @@ function getSystemHealthChecks(stats) {
 
 app.get("/api/efficiency", verifyToken, async (req, res) => {
   try {
-    const stats = await getEfficiencyStats();
+    const stats = await getEfficiencyStats(getAnalyticsDateRange(req));
     res.json({
       ...stats
     });
   } catch (err) {
     console.error("Efficiency API Error:", err);
-    res.status(500).json({ message: "Error fetching efficiency data" });
+    res.status(err.status || 500).json({ message: err.message || "Error fetching efficiency data" });
   }
 });
 

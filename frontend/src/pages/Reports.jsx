@@ -205,7 +205,7 @@ const Reports = () => {
                 type="date"
                 className="form-control"
                 value={dateRange.startDate || ""}
-                max={dateRange.endDate || todayInputValue()}
+                max={todayInputValue()}
                 onChange={(event) => setDateRange((current) => ({ ...current, startDate: event.target.value || null }))}
               />
             </label>

@@ -9,13 +9,14 @@ const EMPTY_DASHBOARD_DATA = {
     emergencyAvailable: 0,
 };
 
-export function useDashboardData(roomData) {
+export function useDashboardData(roomData, dateRange) {
     const [apiData, setApiData] = useState(EMPTY_DASHBOARD_DATA);
     const [isLoading, setIsLoading] = useState(true);
 
     const refreshDashboardData = useCallback(async () => {
         try {
-            const response = await authFetch('/dashboard');
+            const params = new URLSearchParams(dateRange || {});
+            const response = await authFetch(`/dashboard${params.toString() ? `?${params}` : ''}`);
             if (!response.ok) throw new Error('Unable to load dashboard data.');
 
             const data = await response.json();
@@ -25,7 +26,7 @@ export function useDashboardData(roomData) {
         } finally {
             setIsLoading(false);
         }
-    }, []);
+    }, [dateRange?.startDate, dateRange?.endDate]);
 
     useEffect(() => {
         const initialFetch = window.setTimeout(refreshDashboardData, 0);

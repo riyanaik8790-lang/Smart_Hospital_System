@@ -570,6 +570,29 @@ button {
   font-size: 13px;
 }
 
+.analytics-header-actions,
+.analytics-date-range {
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+}
+
+.analytics-date-range {
+  flex-wrap: wrap;
+}
+
+.analytics-date-range label {
+  display: grid;
+  gap: 4px;
+  color: var(--text-gray);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.analytics-date-range .form-control {
+  min-width: 148px;
+}
+
 .profile-page .section-card,
 .profile-page form {
   min-width: 0;
