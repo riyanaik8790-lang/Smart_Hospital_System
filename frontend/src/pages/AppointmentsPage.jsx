@@ -27,6 +27,11 @@ const APPOINTMENT_TIME_SLOTS = Array.from({ length: 33 }, (_, index) => {
 });
 const CLOCK_HOURS = Array.from({ length: 12 }, (_, index) => index + 1);
 const CLOCK_MINUTES = Array.from({ length: 12 }, (_, index) => index * 5);
+const CLOCK_POSITIONS = [
+  [50, 9], [70.5, 14.5], [85.5, 29.5], [91, 50],
+  [85.5, 70.5], [70.5, 85.5], [50, 91], [29.5, 85.5],
+  [14.5, 70.5], [9, 50], [14.5, 29.5], [29.5, 14.5]
+];
 
 const localToday = () => {
   const now = new Date();
@@ -77,7 +82,6 @@ const AppointmentsPage = () => {
   const [pickerHour, setPickerHour] = useState(9);
   const [pickerMinute, setPickerMinute] = useState(0);
   const [pickerPeriod, setPickerPeriod] = useState('AM');
-  const [draggingClock, setDraggingClock] = useState(false);
   const [editingAppointment, setEditingAppointment] = useState(null);
   const [editForm, setEditForm] = useState(EMPTY_EDIT_FORM);
   const [savingEdit, setSavingEdit] = useState(false);
@@ -188,16 +192,6 @@ const AppointmentsPage = () => {
   const selectMinute = (minute) => {
     if (!isAllowedPickerTime(pickerHour, minute, pickerPeriod)) return;
     setPickerMinute(minute);
-  };
-
-  const selectClockPosition = (event) => {
-    const dial = event.currentTarget.getBoundingClientRect();
-    const x = event.clientX - dial.left - (dial.width / 2);
-    const y = event.clientY - dial.top - (dial.height / 2);
-    const angle = (Math.atan2(y, x) * 180 / Math.PI + 450) % 360;
-    const index = Math.round(angle / 30) % 12;
-    if (clockMode === 'hours') selectHour(CLOCK_HOURS[index]);
-    else selectMinute(CLOCK_MINUTES[index]);
   };
 
   const saveTime = () => {
@@ -589,31 +583,20 @@ const AppointmentsPage = () => {
               </div>
             </div>
 
-            <div
-              className="clock-dial"
-              onPointerDown={(event) => {
-                event.currentTarget.setPointerCapture(event.pointerId);
-                setDraggingClock(true);
-                selectClockPosition(event);
-              }}
-              onPointerMove={(event) => draggingClock && selectClockPosition(event)}
-              onPointerUp={() => setDraggingClock(false)}
-              onPointerCancel={() => setDraggingClock(false)}
-            >
+            <div className="clock-dial" role="group" aria-label={clockMode === 'hours' ? 'Select an appointment hour' : 'Select appointment minutes'}>
               <span className="clock-dial-center" />
               {(clockMode === 'hours' ? CLOCK_HOURS : CLOCK_MINUTES).map((value, index) => {
-                const angle = (index * 30 - 90) * Math.PI / 180;
                 const isSelected = clockMode === 'hours' ? pickerHour === value : pickerMinute === value;
                 const isAvailable = clockMode === 'hours'
                   ? isAllowedPickerHour(value, pickerPeriod)
                   : isAllowedPickerTime(pickerHour, value, pickerPeriod);
+                const [left, top] = CLOCK_POSITIONS[index];
                 return (
                   <button
                     key={value}
                     type="button"
                     className={`clock-dial-option${isSelected ? ' selected' : ''}${isAvailable ? '' : ' unavailable'}`}
-                    style={{ left: `${50 + (41 * Math.cos(angle))}%`, top: `${50 + (41 * Math.sin(angle))}%` }}
-                    onPointerDown={(event) => event.stopPropagation()}
+                    style={{ '--clock-x': `${left}%`, '--clock-y': `${top}%` }}
                     onClick={() => clockMode === 'hours' ? selectHour(value) : selectMinute(value)}
                     aria-label={clockMode === 'hours' ? `${value} o'clock` : `${String(value).padStart(2, '0')} minutes`}
                     disabled={!isAvailable}

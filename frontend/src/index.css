@@ -223,6 +223,7 @@ button:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
   border-radius: 50%;
   background: var(--surface-hover);
   contain: layout;
+  isolation: isolate;
   touch-action: none;
   user-select: none;
 }
@@ -240,19 +241,25 @@ button:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
 
 .clock-dial-option {
   position: absolute;
+  left: var(--clock-x);
+  top: var(--clock-y);
+  display: grid;
+  place-items: center;
   width: 38px;
   height: 38px;
+  margin: 0;
   padding: 0;
   border-radius: 50%;
-  transform: translate(-50%, -50%);
+  transform: translate(-50%, -50%) !important;
+  transform-origin: center;
   background: transparent;
   color: var(--text-dark);
   font-size: 16px;
-  transition: background-color 150ms ease, color 150ms ease;
+  transition: background-color 150ms ease, color 150ms ease !important;
 }
 
 .clock-dial-option:not(:disabled):hover,
-.clock-dial-option:not(:disabled):active { transform: translate(-50%, -50%); }
+.clock-dial-option:not(:disabled):active { transform: translate(-50%, -50%) !important; }
 .clock-dial-option.selected { background: var(--primary); color: white; }
 .clock-dial-option.unavailable { color: var(--text-light); opacity: 0.42; cursor: not-allowed; }
 
