@@ -385,7 +385,7 @@ const Reports = () => {
 const Card = ({ title, value, color }) => {
   return (
     <div
-      className="p-4 md:p-6"
+      className="!p-4 md:!p-6"
       style={{
         background: "#ffffff",
         borderRadius: "12px",
