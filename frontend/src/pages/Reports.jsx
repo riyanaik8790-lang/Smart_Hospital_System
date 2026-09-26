@@ -209,7 +209,7 @@ const Reports = () => {
               <span className="help-text">Start date</span>
               <input
                 type="date"
-                className="form-control !min-w-0 !text-xs"
+                className="form-control !min-w-0 !px-1 !text-[10px] md:!px-3 md:!text-sm"
                 value={dateRange.startDate || ""}
                 max={todayInputValue()}
                 onChange={(event) => setDateRange((current) => ({ ...current, startDate: event.target.value || null }))}
@@ -219,7 +219,7 @@ const Reports = () => {
               <span className="help-text">End date</span>
               <input
                 type="date"
-                className="form-control !min-w-0 !text-xs"
+                className="form-control !min-w-0 !px-1 !text-[10px] md:!px-3 md:!text-sm"
                 value={dateRange.endDate || ""}
                 min={dateRange.startDate || undefined}
                 max={todayInputValue()}
