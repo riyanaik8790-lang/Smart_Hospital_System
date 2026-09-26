@@ -1,89 +1,76 @@
 import { useCallback, useEffect, useRef } from 'react';
 
-// The AudioContext is unlocked by a real user gesture, then reused for a short,
-// low-volume two-note notification chime.
+const createNotificationTone = () => {
+  const sampleRate = 8000;
+  const durationSeconds = 0.32;
+  const sampleCount = Math.floor(sampleRate * durationSeconds);
+  const buffer = new ArrayBuffer(44 + sampleCount);
+  const view = new DataView(buffer);
+  const writeText = (offset, value) => [...value].forEach((character, index) => view.setUint8(offset + index, character.charCodeAt(0)));
+
+  writeText(0, 'RIFF');
+  view.setUint32(4, 36 + sampleCount, true);
+  writeText(8, 'WAVE');
+  writeText(12, 'fmt ');
+  view.setUint32(16, 16, true);
+  view.setUint16(20, 1, true);
+  view.setUint16(22, 1, true);
+  view.setUint32(24, sampleRate, true);
+  view.setUint32(28, sampleRate, true);
+  view.setUint16(32, 1, true);
+  view.setUint16(34, 8, true);
+  writeText(36, 'data');
+  view.setUint32(40, sampleCount, true);
+
+  for (let index = 0; index < sampleCount; index += 1) {
+    const time = index / sampleRate;
+    const frequency = time < 0.16 ? 659.25 : 880;
+    const envelope = Math.max(0, 1 - (time / durationSeconds));
+    const sample = Math.sin(2 * Math.PI * frequency * time) * envelope * 0.18;
+    view.setUint8(44 + index, 128 + Math.round(sample * 127));
+  }
+
+  return URL.createObjectURL(new Blob([buffer], { type: 'audio/wav' }));
+};
+
+// Uses a preloaded HTML5 audio element so the same chime works for both the
+// profile-toggle demo and notification alerts without a server-hosted asset.
 export const useNotificationChime = () => {
-  const contextRef = useRef(null);
-  const unlockedRef = useRef(false);
+  const audioRef = useRef(null);
   const lastPlayedAtRef = useRef(0);
 
-  const getContext = useCallback(() => {
-    if (contextRef.current) return contextRef.current;
-    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
-    if (!AudioContextClass) return null;
-    contextRef.current = new AudioContextClass();
-    return contextRef.current;
+  useEffect(() => {
+    const source = createNotificationTone();
+    const audio = new Audio(source);
+    audio.preload = 'auto';
+    audio.volume = 0.45;
+    audio.load();
+    audioRef.current = audio;
+
+    return () => {
+      audio.pause();
+      audioRef.current = null;
+      URL.revokeObjectURL(source);
+    };
   }, []);
 
-  useEffect(() => {
-    const removeUnlockListeners = () => {
-      document.removeEventListener('pointerdown', unlockAudio, true);
-      document.removeEventListener('keydown', unlockAudio, true);
-      document.removeEventListener('touchstart', unlockAudio, true);
-    };
-
-    const unlockAudio = () => {
-      const context = getContext();
-      if (!context) return;
-      const markUnlocked = () => {
-        if (context.state !== 'running') return;
-        unlockedRef.current = true;
-        removeUnlockListeners();
-      };
-
-      if (context.state === 'running') {
-        markUnlocked();
-        return;
-      }
-      context.resume().then(markUnlocked).catch(() => {});
-    };
-
-    document.addEventListener('pointerdown', unlockAudio, true);
-    document.addEventListener('keydown', unlockAudio, true);
-    document.addEventListener('touchstart', unlockAudio, true);
-    return () => {
-      removeUnlockListeners();
-      contextRef.current?.close().catch(() => {});
-    };
-  }, [getContext]);
-
   return useCallback(() => {
-    const soundEnabled = localStorage.getItem('soundEnabled') !== 'false';
-    if (!soundEnabled) return;
+    if (localStorage.getItem('soundEnabled') === 'false') return;
 
-    const context = contextRef.current || getContext();
-    if (!context) return;
+    const audio = audioRef.current;
+    const now = Date.now();
+    if (!audio || now - lastPlayedAtRef.current < 750) return;
 
-    const playChime = () => {
-      const now = Date.now();
-      if (context.state !== 'running' || now - lastPlayedAtRef.current < 750) return;
-
+    try {
+      audio.currentTime = 0;
+      const playback = audio.play();
       lastPlayedAtRef.current = now;
-      const start = context.currentTime;
-      const gain = context.createGain();
-      gain.gain.setValueAtTime(0.0001, start);
-      gain.gain.exponentialRampToValueAtTime(0.045, start + 0.025);
-      gain.gain.exponentialRampToValueAtTime(0.0001, start + 0.42);
-      gain.connect(context.destination);
-
-      [659.25, 880].forEach((frequency, index) => {
-        const oscillator = context.createOscillator();
-        oscillator.type = 'sine';
-        oscillator.frequency.setValueAtTime(frequency, start + (index * 0.1));
-        oscillator.connect(gain);
-        oscillator.start(start + (index * 0.1));
-        oscillator.stop(start + 0.45);
+      playback?.catch((error) => {
+        // Some browsers require a user interaction before playing audio.
+        console.warn('Notification sound was blocked by the browser.', error);
       });
-    };
-
-    if (context.state === 'running') {
-      unlockedRef.current = true;
-      playChime();
-    } else {
-      context.resume().then(() => {
-        unlockedRef.current = true;
-        playChime();
-      }).catch(() => {});
+    } catch (error) {
+      console.warn('Unable to play notification sound.', error);
     }
-  }, [getContext]);
+  }, []);
 };
