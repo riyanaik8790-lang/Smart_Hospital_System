@@ -168,6 +168,13 @@ button:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
   box-shadow: 0 18px 42px rgba(15, 23, 42, 0.28);
 }
 
+/* Keep picker controls from inheriting the application's button lift/scale
+   animation, which overrides the dial options' centering transform. */
+.clock-picker-modal button:not(:disabled):hover,
+.clock-picker-modal button:not(:disabled):active {
+  transform: none;
+}
+
 .clock-picker-header {
   display: flex;
   align-items: center;
@@ -215,6 +222,7 @@ button:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
   margin: 18px auto;
   border-radius: 50%;
   background: var(--surface-hover);
+  contain: layout;
   touch-action: none;
   user-select: none;
 }
@@ -240,8 +248,11 @@ button:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
   background: transparent;
   color: var(--text-dark);
   font-size: 16px;
+  transition: background-color 150ms ease, color 150ms ease;
 }
 
+.clock-dial-option:not(:disabled):hover,
+.clock-dial-option:not(:disabled):active { transform: translate(-50%, -50%); }
 .clock-dial-option.selected { background: var(--primary); color: white; }
 .clock-dial-option.unavailable { color: var(--text-light); opacity: 0.42; cursor: not-allowed; }
 

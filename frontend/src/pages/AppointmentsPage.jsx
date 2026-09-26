@@ -613,6 +613,7 @@ const AppointmentsPage = () => {
                     type="button"
                     className={`clock-dial-option${isSelected ? ' selected' : ''}${isAvailable ? '' : ' unavailable'}`}
                     style={{ left: `${50 + (41 * Math.cos(angle))}%`, top: `${50 + (41 * Math.sin(angle))}%` }}
+                    onPointerDown={(event) => event.stopPropagation()}
                     onClick={() => clockMode === 'hours' ? selectHour(value) : selectMinute(value)}
                     aria-label={clockMode === 'hours' ? `${value} o'clock` : `${String(value).padStart(2, '0')} minutes`}
                     disabled={!isAvailable}

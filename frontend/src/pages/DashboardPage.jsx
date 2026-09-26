@@ -149,7 +149,7 @@ function RecentAppointments() {
 
   return <section className="section-card dashboard-appointments">
     <div className="section-header">
-      <h2 className="section-title"><CalendarDays size={20} /> Recent Appointments</h2>
+      <h2 className="section-title flex items-center gap-2"><CalendarDays size={20} /> <span>Recent Appointments</span></h2>
     </div>
     <div className="table-container">
       <table className="table">

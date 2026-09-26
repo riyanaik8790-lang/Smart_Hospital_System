@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Eye, EyeOff, KeyRound, Save, ShieldCheck, UserRound, UserX, Volume2 } from 'lucide-react';
+import { Eye, EyeOff, KeyRound, Save, ShieldCheck, UserRound, UserX } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import Avatar from '../components/Avatar';
 import AvatarSelectionModal from '../components/AvatarSelectionModal';
@@ -206,27 +206,23 @@ function ProfilePage() {
           </div>
         </div>
 
-        <div className="profile-card-section">
-          <div className="flex min-w-0 items-center gap-3 mb-3">
-            <Volume2 className="shrink-0" size={20} color="var(--primary)" aria-hidden="true" />
-            <div className="min-w-0"><h2 style={{ margin: 0, fontSize: '18px', color: 'var(--text-dark)' }}>Notification Settings</h2><p className="help-text">Choose whether new alerts play a notification chime.</p></div>
-          </div>
-          <label className="flex cursor-pointer items-center justify-between gap-4 rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700">
-            <span className="font-medium">Enable Notification Sounds</span>
-            <input
-              type="checkbox"
-              className="peer sr-only"
-              checked={soundEnabled}
-              onChange={(event) => handleSoundEnabledChange(event.target.checked)}
-              aria-label="Enable Notification Sounds"
-            />
-            <span className="relative h-6 w-11 shrink-0 rounded-full bg-slate-300 transition-colors peer-checked:bg-[var(--primary)] peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-[var(--primary)] after:absolute after:left-1 after:top-1 after:h-4 after:w-4 after:rounded-full after:bg-white after:shadow-sm after:transition-transform peer-checked:after:translate-x-5" aria-hidden="true" />
-          </label>
-        </div>
-
         {profileMessage && <div className={`alert ${profileMessage.type === 'error' ? 'alert-error' : 'alert-success'}`} role="status">{profileMessage.text}</div>}
         <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '20px' }}><button type="submit" className="btn btn-primary" disabled={profileSaving}><Save size={18} />{profileSaving ? 'Saving...' : 'Save Changes'}</button></div>
       </form>
+
+      <section className="section-card profile-card rounded-xl">
+        <label className="flex cursor-pointer items-center justify-between gap-4 rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700">
+          <span className="font-medium">Notification Sounds</span>
+          <input
+            type="checkbox"
+            className="peer sr-only"
+            checked={soundEnabled}
+            onChange={(event) => handleSoundEnabledChange(event.target.checked)}
+            aria-label="Enable Notification Sounds"
+          />
+          <span className="relative h-6 w-11 shrink-0 rounded-full bg-slate-300 transition-colors peer-checked:bg-[var(--primary)] peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-[var(--primary)] after:absolute after:left-1 after:top-1 after:h-4 after:w-4 after:rounded-full after:bg-white after:shadow-sm after:transition-transform peer-checked:after:translate-x-5" aria-hidden="true" />
+        </label>
+      </section>
 
       {showModal && (
         <DeactivateAccountModal
