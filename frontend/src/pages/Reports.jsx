@@ -313,7 +313,7 @@ const Reports = () => {
           width="100%"
           height={350}
         >
-          <LineChart data={data}>
+          <LineChart data={data} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
             <CartesianGrid strokeDasharray="3 3" />
 
             <XAxis dataKey="label" tick={{ fontSize: 10 }} interval="preserveStartEnd" minTickGap={15} />
@@ -372,24 +372,27 @@ const Card = ({ title, value, color }) => {
         borderLeft: `6px solid ${color}`
       }}
     >
-      <div
-        className="text-xs"
-        style={{
-          color: "#6b7280"
-        }}
-      >
-        {title}
-      </div>
+      <div className="pl-4">
+        <div
+          className="text-xs tracking-tight truncate"
+          style={{
+            color: "#6b7280"
+          }}
+          title={title}
+        >
+          {title}
+        </div>
 
-      <div
-        className="text-lg"
-        style={{
-          fontWeight: "bold",
-          marginTop: "8px",
-          color: "#111827"
-        }}
-      >
-        {value}
+        <div
+          className="text-lg"
+          style={{
+            fontWeight: "bold",
+            marginTop: "8px",
+            color: "#111827"
+          }}
+        >
+          {value}
+        </div>
       </div>
     </div>
   );

@@ -1034,7 +1034,7 @@ async function deactivateAccount(req, res, targetUserId) {
 app.get("/users", verifyToken, requireRole("admin"), async (req, res) => {
   try {
     const [users] = await db.execute(
-      "SELECT user_id, name, email, role, is_active, must_change_password, deleted_at, created_at FROM users ORDER BY is_active DESC, created_at DESC"
+      "SELECT user_id, name, email, role, avatar_url, is_active, must_change_password, deleted_at, created_at FROM users ORDER BY is_active DESC, created_at DESC"
     );
     res.json(users);
   } catch (err) {
