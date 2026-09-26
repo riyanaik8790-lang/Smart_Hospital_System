@@ -153,7 +153,7 @@ const DashboardLayout = () => {
                             navigate('/app/users', {
                                 state: {
                                     passwordResetUserId: request.user_id,
-                                    passwordResetUserName: request.name
+                                    passwordResetUserEmail: request.email
                                 }
                             });
                         }

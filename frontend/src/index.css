@@ -961,6 +961,12 @@ button {
 .table tbody tr.password-reset-requested-user {
   background: #fffbeb;
   box-shadow: inset 3px 0 0 #fbbf24;
+  animation: password-reset-row-focus 700ms ease-out;
+}
+
+@keyframes password-reset-row-focus {
+  from { background: #fef3c7; }
+  to { background: #fffbeb; }
 }
 
 /* Badges */

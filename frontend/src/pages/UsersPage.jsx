@@ -8,17 +8,22 @@ import { authFetch } from '../api/authFetch';
 
 const UsersPage = () => {
   const location = useLocation();
-  const requestedUserId = Number(location.state?.passwordResetUserId);
+  const requestedUserId = location.state?.passwordResetUserId;
+  const requestedUserEmail = String(location.state?.passwordResetUserEmail || '').trim().toLowerCase();
   const [users, setUsers] = useState([]); const [selected, setSelected] = useState(null); const [passwordOverrideUser, setPasswordOverrideUser] = useState(null); const [message, setMessage] = useState(''); const [error, setError] = useState(''); const [createOpen, setCreateOpen] = useState(false); const [savingRoleId, setSavingRoleId] = useState(null); const [highlightedUserId, setHighlightedUserId] = useState(null);
   const loadUsers = useCallback(async () => { const r = await authFetch('/users'); const d = await r.json(); if (!r.ok) throw new Error(d.message || 'Unable to load users.'); setUsers(d); }, []);
   useEffect(() => { const timer = window.setTimeout(() => { loadUsers().catch((e) => setMessage(e.message)); }, 0); return () => window.clearTimeout(timer); }, [loadUsers]);
   useEffect(() => {
-    if (!Number.isInteger(requestedUserId) || !users.some((user) => user.user_id === requestedUserId)) return undefined;
+    const requestedUser = users.find((user) =>
+      String(user.user_id) === String(requestedUserId) ||
+      (requestedUserEmail && String(user.email || '').trim().toLowerCase() === requestedUserEmail)
+    );
+    if (!requestedUser) return undefined;
 
-    setHighlightedUserId(requestedUserId);
-    window.requestAnimationFrame(() => document.getElementById(`user-${requestedUserId}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' }));
+    setHighlightedUserId(requestedUser.user_id);
+    window.requestAnimationFrame(() => document.getElementById(`user-${requestedUser.user_id}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' }));
     return undefined;
-  }, [requestedUserId, users]);
+  }, [requestedUserId, requestedUserEmail, users]);
   const deactivate = async (payload) => { try { const r = await authFetch(`/users/${selected.user_id}`, { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) }); const d = await r.json(); if (r.status === 409 && d.requiresOverride) return d; if (!r.ok) return { error: d.message || 'Unable to deactivate account.' }; setSelected(null); setMessage(`${selected.name}'s account was deactivated.`); await loadUsers(); return {}; } catch (e) { return { error: e.message }; } };
   const createStaff = async (form) => { try { const r = await authFetch('/api/users', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(form) }); const d = await r.json(); if (!r.ok) return { error: d.message || 'Unable to create account.' }; setMessage(`${d.user.name}'s staff account was created.`); await loadUsers(); return d; } catch (e) { return { error: e.message }; } };
   const changeRole = async (user, role) => { setSavingRoleId(user.user_id); setError(''); try { const r = await authFetch(`/users/${user.user_id}/role`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ role }) }); const d = await r.json(); if (!r.ok) throw new Error(d.message || 'Unable to update role.'); setMessage(`${user.name}'s role is now ${role}.`); await loadUsers(); } catch (e) { setError(e.message); await loadUsers(); } finally { setSavingRoleId(null); } };
