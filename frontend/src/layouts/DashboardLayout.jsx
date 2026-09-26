@@ -15,7 +15,6 @@ import {
     Bell,
     LogOut,
     Activity,
-    TrendingUp,
     User,
     CalendarDays,
     UserCog
@@ -311,16 +310,6 @@ const DashboardLayout = () => {
                     >
                         <UserCog />
                         User Management
-                    </NavLink>}
-
-                    {canView('admin') && <NavLink
-                        to="/app/efficiency"
-                        className={({ isActive }) =>
-                            `nav-item ${isActive ? 'active' : ''}`
-                        }
-                    >
-                        <TrendingUp />
-                        Efficiency
                     </NavLink>}
 
                     {canView('admin') && <div

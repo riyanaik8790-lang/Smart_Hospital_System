@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
-import { Activity, AlertTriangle, Bed, Stethoscope, UserCheck, Users } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { Activity, AlertCircle, AlertTriangle, Bed, BedDouble, HeartPulse, Stethoscope, UserCheck, Users } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useRoomData } from '../contexts/RoomDataContext';
 import { useDashboardData } from '../hooks/useDashboardData';
+import { authFetch } from '../api/authFetch';
 
 function StatCard({ icon, label, value, variant = '' }) {
   return <div className={`stat-card ${variant}`}><div className="stat-icon">{icon}</div><div className="stat-info"><div className="stat-label">{label}</div><div className="stat-value">{value}</div></div></div>;
@@ -22,10 +23,57 @@ function SkeletonCard() {
 
 const today = () => new Date().toISOString().split('T')[0];
 
+function LinearProgress({ value, label, subLabel, colorClass = 'primary' }) {
+  return <div className="linear-progress-container"><div className="linear-progress-header"><span>{label}</span><span className={`text-${colorClass}`} style={{ fontWeight: 700 }}>{value}% {subLabel && <span style={{ fontSize: '11px', color: 'var(--text-gray)' }}>({subLabel})</span>}</span></div><div className="linear-bg"><div className={`linear-fill ${colorClass}`} style={{ width: `${value}%` }} /></div></div>;
+}
+
+function EfficiencyInsights({ dateRange }) {
+  const [stats, setStats] = useState({ bedOccupancyRate: 0, doctorUtilizationRate: 0, criticalLoad: 0, occupiedRooms: 0, busyDoctors: 0, emergencyAdmitted: 0 });
+  const getRateColor = (rate, dangerThreshold, warningThreshold) => rate >= dangerThreshold ? 'danger' : rate >= warningThreshold ? 'warning' : 'success';
+
+  useEffect(() => {
+    let active = true;
+    const loadInsights = async () => {
+      try {
+        const response = await authFetch(`/api/efficiency?${new URLSearchParams(dateRange)}`);
+        if (!response.ok) throw new Error('Unable to load efficiency insights.');
+        const data = await response.json();
+        if (active) setStats(data);
+      } catch (error) {
+        console.error('Error loading dashboard efficiency insights:', error);
+      }
+    };
+    loadInsights();
+    const interval = window.setInterval(loadInsights, 3000);
+    return () => { active = false; window.clearInterval(interval); };
+  }, [dateRange.startDate, dateRange.endDate]);
+
+  return <div className="efficiency-details-grid">
+    <div className="card efficiency-card" style={{ marginBottom: 0 }}>
+      <div className="card-header"><div className="card-title" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><Activity size={20} color="var(--primary)" />Utilization Deep Dive</div></div>
+      <div className="card-body">
+        <LinearProgress value={stats.bedOccupancyRate} label="Inpatient Ward Capacity" subLabel={`${stats.occupiedRooms} occupants`} colorClass={getRateColor(stats.bedOccupancyRate, 90, 75)} />
+        <div style={{ marginBottom: '24px' }} />
+        <LinearProgress value={stats.doctorUtilizationRate} label="Medical Staff Bandwidth" subLabel={`${stats.busyDoctors} active`} colorClass={getRateColor(stats.doctorUtilizationRate, 85, 70)} />
+        <div style={{ marginBottom: '24px' }} />
+        <LinearProgress value={stats.criticalLoad} label="Critical Care Load" subLabel={`${stats.emergencyAdmitted} critical`} colorClass={getRateColor(stats.criticalLoad, 20, 10)} />
+      </div>
+    </div>
+    <div className="card efficiency-card" style={{ marginBottom: 0 }}>
+      <div className="card-header"><div className="card-title" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><HeartPulse size={20} color="var(--danger)" />System Health Checks</div></div>
+      <div className="card-body">
+        <div className="efficiency-health-check" style={{ display: 'flex', alignItems: 'center', gap: '16px', padding: '16px', background: 'var(--surface-hover)', borderRadius: '8px', marginBottom: '16px' }}><div style={{ padding: '12px', background: stats.criticalLoad > 20 ? 'var(--danger-light)' : 'var(--success-light)', color: stats.criticalLoad > 20 ? 'var(--danger)' : 'var(--success)', borderRadius: '50%' }}><AlertCircle size={24} /></div><div><div style={{ fontWeight: 600 }}>Emergency Department Status</div><div style={{ fontSize: '13px', color: 'var(--text-gray)' }}>{stats.criticalLoad > 20 ? 'High capacity warning, routing new emergencies may be delayed.' : 'Operating normally, capable of handling new traumas.'}</div></div></div>
+        <div className="efficiency-health-check" style={{ display: 'flex', alignItems: 'center', gap: '16px', padding: '16px', background: 'var(--surface-hover)', borderRadius: '8px', marginBottom: '16px' }}><div style={{ padding: '12px', background: stats.doctorUtilizationRate > 85 ? 'var(--warning-light)' : 'var(--success-light)', color: stats.doctorUtilizationRate > 85 ? 'var(--warning)' : 'var(--success)', borderRadius: '50%' }}><Users size={24} /></div><div><div style={{ fontWeight: 600 }}>Staffing Levels</div><div style={{ fontSize: '13px', color: 'var(--text-gray)' }}>{stats.doctorUtilizationRate > 85 ? 'Medical staff severely strained. Consider calling in on-call physicians.' : 'Adequate physician availability for patient volume.'}</div></div></div>
+        <div className="efficiency-health-check" style={{ display: 'flex', alignItems: 'center', gap: '16px', padding: '16px', background: 'var(--surface-hover)', borderRadius: '8px' }}><div style={{ padding: '12px', background: stats.bedOccupancyRate > 90 ? 'var(--danger-light)' : 'var(--success-light)', color: stats.bedOccupancyRate > 90 ? 'var(--danger)' : 'var(--success)', borderRadius: '50%' }}><BedDouble size={24} /></div><div><div style={{ fontWeight: 600 }}>Bed Availability</div><div style={{ fontSize: '13px', color: 'var(--text-gray)' }}>{stats.bedOccupancyRate > 90 ? 'Critical bed shortage. Expedite discharges if clinically appropriate.' : 'Normal bed availability across all wards.'}</div></div></div>
+      </div>
+    </div>
+  </div>;
+}
+
 export function DashboardOverview({ dashboardData, isLoading, dateRange, setDateRange }) {
   const navigate = useNavigate();
 
-  return <div className="page-container"><div className="page-header"><div><h1 className="page-title">Dashboard Overview</h1><p className="page-subtitle">Live hospital activity</p></div><div className="analytics-header-actions"><div className="analytics-date-range" aria-label="Dashboard date range"><label><span>Start date</span><input type="date" className="form-control" value={dateRange.startDate} max={today()} onChange={(event) => setDateRange((current) => ({ ...current, startDate: event.target.value, endDate: event.target.value > current.endDate ? event.target.value : current.endDate }))} /></label><label><span>End date</span><input type="date" className="form-control" value={dateRange.endDate} min={dateRange.startDate} max={today()} onChange={(event) => setDateRange((current) => ({ ...current, endDate: event.target.value }))} /></label></div><button className="btn btn-primary" onClick={() => navigate('/app/reports')}>Generate Report</button></div></div><div className="stats-grid">{isLoading ? Array.from({ length: 6 }, (_, index) => <SkeletonCard key={index} />) : <><StatCard icon={<Users />} label="Total Patients" value={dashboardData.totalPatients} /><StatCard icon={<UserCheck />} label="Admitted Patients" value={dashboardData.admittedPatients} /><StatCard icon={<AlertTriangle />} label="Critical Cases" value={dashboardData.criticalPatients} variant="danger" /><StatCard icon={<Stethoscope />} label="Available Doctors" value={dashboardData.availableDoctors} variant="success" /><StatCard icon={<Bed />} label="Available Rooms" value={dashboardData.availableRooms} variant="success" /><StatCard icon={<Activity />} label="Emergency Rooms" value={dashboardData.emergencyAvailable} variant="danger" /></>}</div></div>;
+  return <div className="page-container"><div className="page-header"><div><h1 className="page-title">Dashboard Overview</h1><p className="page-subtitle">Live hospital activity</p></div><div className="analytics-header-actions"><div className="analytics-date-range" aria-label="Dashboard date range"><label><span>Start date</span><input type="date" className="form-control" value={dateRange.startDate} max={today()} onChange={(event) => setDateRange((current) => ({ ...current, startDate: event.target.value, endDate: event.target.value > current.endDate ? event.target.value : current.endDate }))} /></label><label><span>End date</span><input type="date" className="form-control" value={dateRange.endDate} min={dateRange.startDate} max={today()} onChange={(event) => setDateRange((current) => ({ ...current, endDate: event.target.value }))} /></label></div><button className="btn btn-primary" onClick={() => navigate('/app/reports')}>Generate Report</button></div></div><div className="stats-grid">{isLoading ? Array.from({ length: 6 }, (_, index) => <SkeletonCard key={index} />) : <><StatCard icon={<Users />} label="Total Patients" value={dashboardData.totalPatients} /><StatCard icon={<UserCheck />} label="Admitted Patients" value={dashboardData.admittedPatients} /><StatCard icon={<AlertTriangle />} label="Critical Cases" value={dashboardData.criticalPatients} variant="danger" /><StatCard icon={<Stethoscope />} label="Available Doctors" value={dashboardData.availableDoctors} variant="success" /><StatCard icon={<Bed />} label="Available Rooms" value={dashboardData.availableRooms} variant="success" /><StatCard icon={<Activity />} label="Emergency Rooms" value={dashboardData.emergencyAvailable} variant="danger" /></>}</div><EfficiencyInsights dateRange={dateRange} /></div>;
 }
 
 export default function DashboardPage() {

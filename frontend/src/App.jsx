@@ -7,7 +7,6 @@ import PatientsPage from './pages/PatientsPage';
 import PriorityQueuePage from './pages/PriorityQueuePage';
 import DoctorsPage from './pages/DoctorsPage';
 import RoomsPage from './pages/RoomsPage';
-import EfficiencyDashboardPage from './pages/EfficiencyDashboardPage';
 import Reports from './pages/Reports';
 import ProfilePage from './pages/ProfilePage';
 import AppointmentsPage from './pages/AppointmentsPage';
@@ -61,7 +60,6 @@ function App() {
             <Route path="appointments" element={<RequireRole roles={['admin', 'doctor', 'nurse', 'receptionist']}><AppointmentsPage /></RequireRole>} />
             <Route path="doctors" element={<RequireRole roles={['admin', 'doctor', 'receptionist']}><DoctorsPage /></RequireRole>} />
             <Route path="rooms" element={<RequireRole roles={['admin', 'doctor', 'nurse', 'receptionist']}><RoomsPage /></RequireRole>} />
-            <Route path="efficiency" element={<RequireRole roles={['admin']}><EfficiencyDashboardPage /></RequireRole>} />
             <Route path="reports" element={<RequireRole roles={['admin']}><Reports /></RequireRole>} />
             <Route path="users" element={<RequireRole roles={['admin']}><UsersPage /></RequireRole>} />
             <Route path="profile" element={<ProfilePage />} />
