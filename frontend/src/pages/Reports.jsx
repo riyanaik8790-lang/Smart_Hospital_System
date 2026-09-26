@@ -248,7 +248,7 @@ const Reports = () => {
         <div className="efficiency-export-menu">
           <button
             type="button"
-            className="btn btn-primary w-full !px-1 !py-2 !text-xs"
+            className="btn btn-primary w-full !px-1 !py-2 !text-xs md:!h-[42px]"
             onClick={() => setIsExportOpen((isOpen) => !isOpen)}
             aria-expanded={isExportOpen}
             aria-haspopup="menu"
@@ -273,7 +273,7 @@ const Reports = () => {
 
       {/* KPI CARDS */}
       <div
-        className="reports-stats grid grid-cols-2 gap-3 px-2 md:grid-cols-4 md:px-0"
+        className="reports-stats grid grid-cols-2 gap-4 px-2 md:grid-cols-4 md:px-0"
         style={{
           marginBottom: "30px"
         }}
@@ -338,7 +338,13 @@ const Reports = () => {
 
             <Tooltip labelFormatter={(_, payload) => payload?.[0]?.payload?.date || ''} />
 
-            <Legend />
+            <Legend
+              layout="horizontal"
+              align="center"
+              verticalAlign="bottom"
+              iconSize={10}
+              wrapperStyle={{ fontSize: 10, whiteSpace: 'nowrap' }}
+            />
 
             {/* ADMITTED */}
             <Line
@@ -379,7 +385,7 @@ const Reports = () => {
 const Card = ({ title, value, color }) => {
   return (
     <div
-      className="p-3 md:p-[18px]"
+      className="p-4 md:p-6"
       style={{
         background: "#ffffff",
         borderRadius: "12px",
@@ -388,7 +394,7 @@ const Card = ({ title, value, color }) => {
         borderLeft: `6px solid ${color}`
       }}
     >
-      <div className="pl-4 md:pl-0">
+      <div className="pl-4 md:pl-6">
         <div
           className="text-xs tracking-tight truncate md:text-[13px] md:tracking-normal md:whitespace-normal md:overflow-visible md:text-clip"
           style={{
