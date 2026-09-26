@@ -161,12 +161,18 @@ const AppointmentsPage = () => {
 
   const isAllowedPickerTime = (hour, minute, period) => {
     const hour24 = (hour % 12) + (period === 'PM' ? 12 : 0);
-    return APPOINTMENT_TIME_SLOTS.includes(`${String(hour24).padStart(2, '0')}:${String(minute).padStart(2, '0')}`);
+    const time = `${String(hour24).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
+    const selectedDate = timePickerTarget === 'edit' ? editForm.appointment_date : formData.appointment_date;
+    const isPastTimeToday = selectedDate === localToday() && localDateTime(selectedDate, time) <= new Date();
+    return APPOINTMENT_TIME_SLOTS.includes(time) && !isPastTimeToday;
   };
 
   const isAllowedPickerHour = (hour, period) => {
     const hour24 = (hour % 12) + (period === 'PM' ? 12 : 0);
-    return hour24 >= 9 && hour24 <= 17;
+    return APPOINTMENT_TIME_SLOTS.some((time) => {
+      const [slotHour, slotMinute] = time.split(':').map(Number);
+      return slotHour === hour24 && isAllowedPickerTime(hour, slotMinute, period);
+    });
   };
 
   const openTimePicker = (target = 'book') => {
@@ -595,7 +601,7 @@ const AppointmentsPage = () => {
                   <button
                     key={value}
                     type="button"
-                    className={`clock-dial-option${isSelected ? ' selected' : ''}${isAvailable ? '' : ' unavailable'}`}
+                    className={`clock-dial-option${isSelected ? ' selected' : ''}${isAvailable ? '' : ' unavailable text-slate-300 cursor-not-allowed'}`}
                     style={{ '--clock-x': `${left}%`, '--clock-y': `${top}%` }}
                     onClick={() => clockMode === 'hours' ? selectHour(value) : selectMinute(value)}
                     aria-label={clockMode === 'hours' ? `${value} o'clock` : `${String(value).padStart(2, '0')} minutes`}
