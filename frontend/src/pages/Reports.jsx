@@ -28,6 +28,21 @@ const parseDateInput = (value) => {
 
 const todayInputValue = () => toDateInputValue(new Date());
 
+const useMediaQuery = (query) => {
+  const getMatches = () => typeof window !== 'undefined' && window.matchMedia(query).matches;
+  const [matches, setMatches] = useState(getMatches);
+
+  useEffect(() => {
+    const mediaQuery = window.matchMedia(query);
+    const updateMatches = () => setMatches(mediaQuery.matches);
+    updateMatches();
+    mediaQuery.addEventListener('change', updateMatches);
+    return () => mediaQuery.removeEventListener('change', updateMatches);
+  }, [query]);
+
+  return matches;
+};
+
 const createDailyTrendSeries = (startDate, endDate, metrics) => {
   const valuesByDate = new Map(metrics.map((metric) => [metric.date, metric]));
   const points = [];
@@ -52,6 +67,7 @@ const createDailyTrendSeries = (startDate, endDate, metrics) => {
 
 const Reports = () => {
   const location = useLocation();
+  const isMobile = useMediaQuery('(max-width: 767px)');
   const [data, setData] = useState([]);
   const [stats, setStats] = useState({});
   const [dateRange, setDateRange] = useState(() => {
@@ -204,7 +220,7 @@ const Reports = () => {
       >
        Smart Hospital Performance Report
       </h2>
-        <div className="grid grid-cols-3 gap-2 items-end md:flex md:flex-wrap md:justify-end md:gap-3" style={{ marginBottom: "20px" }} aria-label="Report date range and export options">
+        <div className="grid grid-cols-[1fr_1fr_auto] gap-2 items-end md:flex md:flex-wrap md:justify-end md:gap-3" style={{ marginBottom: "20px" }} aria-label="Report date range and export options">
             <label className="input-group min-w-0" style={{ margin: 0 }}>
               <span className="help-text">Start date</span>
               <input
@@ -257,7 +273,7 @@ const Reports = () => {
 
       {/* KPI CARDS */}
       <div
-        className="reports-stats grid grid-cols-2 gap-3 md:grid-cols-4"
+        className="reports-stats grid grid-cols-2 gap-3 px-2 md:grid-cols-4 md:px-0"
         style={{
           marginBottom: "30px"
         }}
@@ -313,7 +329,7 @@ const Reports = () => {
           width="100%"
           height={350}
         >
-          <LineChart data={data} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+          <LineChart data={data} margin={isMobile ? { top: 10, right: 30, left: -20, bottom: 0 } : undefined}>
             <CartesianGrid strokeDasharray="3 3" />
 
             <XAxis dataKey="label" tick={{ fontSize: 10 }} interval="preserveStartEnd" minTickGap={15} />
@@ -363,7 +379,7 @@ const Reports = () => {
 const Card = ({ title, value, color }) => {
   return (
     <div
-      className="p-3"
+      className="p-3 md:p-[18px]"
       style={{
         background: "#ffffff",
         borderRadius: "12px",
@@ -372,9 +388,9 @@ const Card = ({ title, value, color }) => {
         borderLeft: `6px solid ${color}`
       }}
     >
-      <div className="pl-4">
+      <div className="pl-4 md:pl-0">
         <div
-          className="text-xs tracking-tight truncate"
+          className="text-xs tracking-tight truncate md:text-[13px] md:tracking-normal md:whitespace-normal md:overflow-visible md:text-clip"
           style={{
             color: "#6b7280"
           }}
@@ -384,7 +400,7 @@ const Card = ({ title, value, color }) => {
         </div>
 
         <div
-          className="text-lg"
+          className="text-lg md:text-2xl"
           style={{
             fontWeight: "bold",
             marginTop: "8px",
