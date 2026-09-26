@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Eye, EyeOff, KeyRound, Save, ShieldCheck, UserRound, UserX } from 'lucide-react';
+import { Eye, EyeOff, KeyRound, Save, ShieldCheck, UserRound, UserX, Volume2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import Avatar from '../components/Avatar';
 import AvatarSelectionModal from '../components/AvatarSelectionModal';
@@ -17,6 +17,7 @@ function ProfilePage() {
   const [profileMessage, setProfileMessage] = useState(null);
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
+  const [soundEnabled, setSoundEnabled] = useState(() => localStorage.getItem('soundEnabled') !== 'false');
   const [passwordFields, setPasswordFields] = useState({ currentPassword: '', newPassword: '' });
   const [user, setUser] = useState({
     userId: null,
@@ -82,6 +83,11 @@ function ProfilePage() {
     localStorage.setItem('avatarUrl', avatarUrl);
     window.dispatchEvent(new Event('avatar-updated'));
     setAvatarModalOpen(false);
+  };
+
+  const handleSoundEnabledChange = (enabled) => {
+    setSoundEnabled(enabled);
+    localStorage.setItem('soundEnabled', String(enabled));
   };
 
   const saveProfile = async (event) => {
@@ -198,6 +204,24 @@ function ProfilePage() {
             <div className="input-group"><label htmlFor="current-password">Current Password</label><div className="password-field"><input id="current-password" className="form-control" type={showCurrentPassword ? 'text' : 'password'} autoComplete="current-password" value={passwordFields.currentPassword} onChange={(event) => setPasswordFields((current) => ({ ...current, currentPassword: event.target.value }))} /><button type="button" className="password-visibility-toggle" onClick={() => setShowCurrentPassword((visible) => !visible)} aria-label={showCurrentPassword ? 'Hide current password' : 'Show current password'} title={showCurrentPassword ? 'Hide password' : 'Show password'}>{showCurrentPassword ? <EyeOff size={18} aria-hidden="true" /> : <Eye size={18} aria-hidden="true" />}</button></div></div>
             <div className="input-group"><label htmlFor="new-password">New Password</label><div className="password-field"><input id="new-password" className="form-control" type={showNewPassword ? 'text' : 'password'} autoComplete="new-password" minLength={8} value={passwordFields.newPassword} onChange={(event) => setPasswordFields((current) => ({ ...current, newPassword: event.target.value }))} /><button type="button" className="password-visibility-toggle" onClick={() => setShowNewPassword((visible) => !visible)} aria-label={showNewPassword ? 'Hide new password' : 'Show new password'} title={showNewPassword ? 'Hide password' : 'Show password'}>{showNewPassword ? <EyeOff size={18} aria-hidden="true" /> : <Eye size={18} aria-hidden="true" />}</button></div><p className="help-text">At least 8 characters, including a letter and a number.</p></div>
           </div>
+        </div>
+
+        <div className="profile-card-section">
+          <div className="flex min-w-0 items-center gap-3 mb-3">
+            <Volume2 className="shrink-0" size={20} color="var(--primary)" aria-hidden="true" />
+            <div className="min-w-0"><h2 style={{ margin: 0, fontSize: '18px', color: 'var(--text-dark)' }}>Notification Settings</h2><p className="help-text">Choose whether new alerts play a notification chime.</p></div>
+          </div>
+          <label className="flex cursor-pointer items-center justify-between gap-4 rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700">
+            <span className="font-medium">Enable Notification Sounds</span>
+            <input
+              type="checkbox"
+              className="peer sr-only"
+              checked={soundEnabled}
+              onChange={(event) => handleSoundEnabledChange(event.target.checked)}
+              aria-label="Enable Notification Sounds"
+            />
+            <span className="relative h-6 w-11 shrink-0 rounded-full bg-slate-300 transition-colors peer-checked:bg-[var(--primary)] peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-[var(--primary)] after:absolute after:left-1 after:top-1 after:h-4 after:w-4 after:rounded-full after:bg-white after:shadow-sm after:transition-transform peer-checked:after:translate-x-5" aria-hidden="true" />
+          </label>
         </div>
 
         {profileMessage && <div className={`alert ${profileMessage.type === 'error' ? 'alert-error' : 'alert-success'}`} role="status">{profileMessage.text}</div>}

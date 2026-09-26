@@ -72,6 +72,7 @@ const AppointmentsPage = () => {
   const [loading, setLoading] = useState(false);
   const [phoneTouched, setPhoneTouched] = useState(false);
   const [timePickerOpen, setTimePickerOpen] = useState(false);
+  const [timePickerTarget, setTimePickerTarget] = useState('book');
   const [clockMode, setClockMode] = useState('hours');
   const [pickerHour, setPickerHour] = useState(9);
   const [pickerMinute, setPickerMinute] = useState(0);
@@ -164,14 +165,16 @@ const AppointmentsPage = () => {
     return hour24 >= 9 && hour24 <= 17;
   };
 
-  const openTimePicker = () => {
-    const [hour = 9, minute = 0] = /^\d{2}:\d{2}$/.test(formData.appointment_time)
-      ? formData.appointment_time.split(':').map(Number)
+  const openTimePicker = (target = 'book') => {
+    const appointmentTime = target === 'edit' ? editForm.appointment_time : formData.appointment_time;
+    const [hour = 9, minute = 0] = /^\d{2}:\d{2}$/.test(appointmentTime)
+      ? appointmentTime.split(':').map(Number)
       : [];
     setPickerPeriod(hour >= 12 ? 'PM' : 'AM');
     setPickerHour(hour % 12 || 12);
     setPickerMinute(minute);
     setClockMode('hours');
+    setTimePickerTarget(target);
     setTimePickerOpen(true);
   };
 
@@ -203,10 +206,12 @@ const AppointmentsPage = () => {
       return;
     }
     const hour24 = (pickerHour % 12) + (pickerPeriod === 'PM' ? 12 : 0);
-    setFormData((current) => ({
-      ...current,
-      appointment_time: `${String(hour24).padStart(2, '0')}:${String(pickerMinute).padStart(2, '0')}`
-    }));
+    const appointmentTime = `${String(hour24).padStart(2, '0')}:${String(pickerMinute).padStart(2, '0')}`;
+    if (timePickerTarget === 'edit') {
+      setEditForm((current) => ({ ...current, appointment_time: appointmentTime }));
+    } else {
+      setFormData((current) => ({ ...current, appointment_time: appointmentTime }));
+    }
     setTimePickerOpen(false);
   };
 
@@ -278,8 +283,8 @@ const AppointmentsPage = () => {
       notify('Doctor, date, and time are required.', 'error');
       return;
     }
-    if (editForm.appointment_date > localToday()) {
-      notify(`Appointment date cannot be after ${localToday()}.`, 'error');
+    if (editForm.appointment_date < localToday()) {
+      notify(`Appointment date cannot be before ${localToday()}.`, 'error');
       return;
     }
     if (!APPOINTMENT_TIME_SLOTS.includes(editForm.appointment_time)) {
@@ -455,11 +460,11 @@ const AppointmentsPage = () => {
                 </div>
                 <div className="input-group">
                   <label>Date *</label>
-                  <input className="form-control" name="appointment_date" value={formData.appointment_date} onChange={handleChange} type="date" min={localToday()} max={localToday()} required />
+                  <input className="form-control" name="appointment_date" value={formData.appointment_date} onChange={handleChange} type="date" min={localToday()} required />
                 </div>
                 <div className="input-group">
                   <label>Time *</label>
-                  <button className="time-input-trigger" type="button" onClick={openTimePicker} aria-haspopup="dialog" aria-expanded={timePickerOpen}>
+                  <button className="time-input-trigger" type="button" onClick={openTimePicker} aria-haspopup="dialog" aria-expanded={timePickerOpen && timePickerTarget === 'book'}>
                     <Clock3 size={18} aria-hidden="true" />
                     <span className={formData.appointment_time ? '' : 'time-placeholder'}>{formatTime(formData.appointment_time)}</span>
                   </button>
@@ -536,18 +541,15 @@ const AppointmentsPage = () => {
                 </div>
                 <div className="input-group">
                   <label htmlFor="edit-date">Date *</label>
-                  <input id="edit-date" className="form-control" name="appointment_date" value={editForm.appointment_date} onChange={handleEditChange} type="date" max={localToday()} required />
-                  <p className="help-text">Dates cannot be later than today ({localToday()}).</p>
+                  <input id="edit-date" className="form-control" name="appointment_date" value={editForm.appointment_date} onChange={handleEditChange} type="date" min={localToday()} required />
+                  <p className="help-text">Select today ({localToday()}) or a future date.</p>
                 </div>
                 <div className="input-group">
                   <label htmlFor="edit-time">Time *</label>
-                  <select id="edit-time" className="form-control" name="appointment_time" value={editForm.appointment_time} onChange={handleEditChange} required>
-                    <option value="">Select a time</option>
-                    {APPOINTMENT_TIME_SLOTS.map((time) => {
-                      const isPastToday = editForm.appointment_date === localToday() && localDateTime(editForm.appointment_date, time) <= new Date();
-                      return <option key={time} value={time} disabled={isPastToday}>{formatTime(time)}{isPastToday ? ' (past)' : ''}</option>;
-                    })}
-                  </select>
+                  <button id="edit-time" className="time-input-trigger" type="button" onClick={() => openTimePicker('edit')} aria-haspopup="dialog" aria-expanded={timePickerOpen && timePickerTarget === 'edit'}>
+                    <Clock3 size={18} aria-hidden="true" />
+                    <span className={editForm.appointment_time ? '' : 'time-placeholder'}>{formatTime(editForm.appointment_time)}</span>
+                  </button>
                 </div>
                 <div className="input-group">
                   <label htmlFor="edit-status">Status *</label>
@@ -622,7 +624,7 @@ const AppointmentsPage = () => {
             </div>
 
             <div className="clock-picker-actions">
-              <button type="button" onClick={() => { setFormData((current) => ({ ...current, appointment_time: '' })); setTimePickerOpen(false); }}>Clear</button>
+              <button type="button" onClick={() => { if (timePickerTarget === 'edit') setEditForm((current) => ({ ...current, appointment_time: '' })); else setFormData((current) => ({ ...current, appointment_time: '' })); setTimePickerOpen(false); }}>Clear</button>
               <button type="button" onClick={() => setTimePickerOpen(false)}>Cancel</button>
               <button type="button" className="clock-set-button" onClick={saveTime}>Set</button>
             </div>

@@ -33,6 +33,9 @@ export const useNotificationChime = () => {
   }, [getContext]);
 
   return useCallback(() => {
+    const soundEnabled = localStorage.getItem('soundEnabled') !== 'false';
+    if (!soundEnabled) return;
+
     const context = contextRef.current;
     const now = Date.now();
     if (!unlockedRef.current || !context || context.state !== 'running' || now - lastPlayedAtRef.current < 750) return;

@@ -150,7 +150,7 @@ button:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
 .clock-picker-overlay {
   position: fixed;
   inset: 0;
-  z-index: 50;
+  z-index: 70;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -159,10 +159,11 @@ button:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
 }
 
 .clock-picker-modal {
-  width: 90vw;
-  max-width: 320px;
+  box-sizing: border-box;
+  width: min(320px, calc(100vw - 32px));
+  max-height: calc(100dvh - 32px);
   border-radius: 16px;
-  overflow: hidden;
+  overflow: auto;
   background: var(--surface);
   box-shadow: 0 18px 42px rgba(15, 23, 42, 0.28);
 }
@@ -209,7 +210,7 @@ button:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
 
 .clock-dial {
   position: relative;
-  width: min(240px, 100%);
+  width: min(240px, calc(100% - 32px));
   aspect-ratio: 1;
   margin: 18px auto;
   border-radius: 50%;
