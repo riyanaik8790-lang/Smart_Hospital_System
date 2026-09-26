@@ -881,6 +881,9 @@ app.put("/appointments/:appointment_id", verifyToken, requireRole("admin", "doct
       if (appointment_date > todayDate) {
         return res.status(400).json({ message: "Appointment date cannot be later than today." });
       }
+      if (appointmentDateTime(appointment_date, normalizedTime) <= today) {
+        return res.status(400).json({ message: "Cannot save an appointment in the past." });
+      }
 
       const [activeDoctor] = await db.execute(
         "SELECT doctor_id FROM doctors WHERE doctor_id = $1 AND status != 'Inactive'",

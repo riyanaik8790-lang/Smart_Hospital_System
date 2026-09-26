@@ -82,6 +82,7 @@ const AppointmentsPage = () => {
   const [savingEdit, setSavingEdit] = useState(false);
   const role = (localStorage.getItem('role') || '').toLowerCase();
   const canBook = ['admin', 'receptionist'].includes(role);
+  const isSearching = Boolean(searchInput.trim());
   const filteredAppointments = appointments.filter((appointment) => {
     const query = searchTerm.toLowerCase();
     const matchesSearch = !query || appointment.patient_name?.toLowerCase().includes(query) ||
@@ -222,7 +223,7 @@ const AppointmentsPage = () => {
       return;
     }
 
-    if (localDateTime(formData.appointment_date, formData.appointment_time) < new Date()) {
+    if (localDateTime(formData.appointment_date, formData.appointment_time) <= new Date()) {
       notify('Cannot book an appointment in the past.', 'error');
       return;
     }
@@ -283,6 +284,10 @@ const AppointmentsPage = () => {
     }
     if (!APPOINTMENT_TIME_SLOTS.includes(editForm.appointment_time)) {
       notify('Please choose an available appointment time.', 'error');
+      return;
+    }
+    if (localDateTime(editForm.appointment_date, editForm.appointment_time) <= new Date()) {
+      notify('Cannot save an appointment in the past. Choose a later time.', 'error');
       return;
     }
 
@@ -395,10 +400,10 @@ const AppointmentsPage = () => {
         </div>
       )}
 
-      {canBook && (
+      {canBook && !isSearching && (
         <section className="section-card">
           <div className="section-header">
-            <h2 className="section-title"><CalendarDays size={20} /> Book Appointment</h2>
+            <h2 className="section-title flex items-center gap-2"><CalendarDays size={20} aria-hidden="true" /> <span>Book Appointment</span></h2>
           </div>
           <div className="section-body">
             <form onSubmit={handleBook}>
@@ -450,7 +455,7 @@ const AppointmentsPage = () => {
                 </div>
                 <div className="input-group">
                   <label>Date *</label>
-                  <input className="form-control" name="appointment_date" value={formData.appointment_date} onChange={handleChange} type="date" min={localToday()} required />
+                  <input className="form-control" name="appointment_date" value={formData.appointment_date} onChange={handleChange} type="date" min={localToday()} max={localToday()} required />
                 </div>
                 <div className="input-group">
                   <label>Time *</label>
@@ -538,7 +543,10 @@ const AppointmentsPage = () => {
                   <label htmlFor="edit-time">Time *</label>
                   <select id="edit-time" className="form-control" name="appointment_time" value={editForm.appointment_time} onChange={handleEditChange} required>
                     <option value="">Select a time</option>
-                    {APPOINTMENT_TIME_SLOTS.map((time) => <option key={time} value={time}>{formatTime(time)}</option>)}
+                    {APPOINTMENT_TIME_SLOTS.map((time) => {
+                      const isPastToday = editForm.appointment_date === localToday() && localDateTime(editForm.appointment_date, time) <= new Date();
+                      return <option key={time} value={time} disabled={isPastToday}>{formatTime(time)}{isPastToday ? ' (past)' : ''}</option>;
+                    })}
                   </select>
                 </div>
                 <div className="input-group">

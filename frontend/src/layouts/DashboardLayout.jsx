@@ -38,6 +38,7 @@ const DashboardLayout = () => {
 
     const lastPatientIdRef = useRef(null);
     const urgentPatientIdsRef = useRef(null);
+    const criticalAlertKeysRef = useRef(null);
     const previousUnreadCountRef = useRef(null);
 
     const [notifications, setNotifications] = useState([]);
@@ -138,7 +139,7 @@ const DashboardLayout = () => {
                     .map((patient) => String(patient.patient_id)));
                 if (urgentPatientIdsRef.current) {
                     const hasNewUrgentPatient = [...urgentIds].some((id) => !urgentPatientIdsRef.current.has(id));
-                    if (hasNewUrgentPatient) playNotificationChime();
+                    if (hasNewUrgentPatient && role !== 'admin') playNotificationChime();
                 }
                 urgentPatientIdsRef.current = urgentIds;
             }
@@ -160,6 +161,65 @@ const DashboardLayout = () => {
             }
 
             if (role === 'admin') {
+                // These are read-only calls to existing frontend endpoints.
+                // A baseline is stored first, then only new emergency events or
+                // threshold crossings become visible alerts on later polls.
+                const criticalAlerts = [];
+                if (Array.isArray(data)) {
+                    data.forEach((patient) => {
+                        const priority = String(patient.priority_label || '').toLowerCase();
+                        const status = String(patient.status || '').toLowerCase();
+                        if (status === 'admitted' && ['emergency', 'critical'].includes(priority)) {
+                            criticalAlerts.push({
+                                key: `critical-admission-${patient.patient_id}-${priority}-${status}`,
+                                text: `Urgent admission: ${patient.name} is admitted with ${patient.priority_label} priority.`
+                            });
+                        }
+                    });
+                }
+
+                try {
+                    const [efficiencyResponse, roomsResponse] = await Promise.all([
+                        authFetch('/api/efficiency'),
+                        authFetch('/rooms')
+                    ]);
+                    const efficiency = efficiencyResponse.ok ? await efficiencyResponse.json() : null;
+                    const rooms = roomsResponse.ok ? await roomsResponse.json() : [];
+                    const emergencyRooms = Array.isArray(rooms)
+                        ? rooms.filter((room) => String(room.type || '').toLowerCase() === 'emergency')
+                        : [];
+                    const availableEmergencyRooms = emergencyRooms.filter((room) => String(room.status || '').toLowerCase() === 'available').length;
+
+                    if (efficiency?.bedOccupancyRate >= 90) {
+                        criticalAlerts.push({ key: 'critical-bed-occupancy', text: `Critical capacity warning: bed occupancy is ${efficiency.bedOccupancyRate}%.` });
+                    }
+                    if (emergencyRooms.length && ((emergencyRooms.length - availableEmergencyRooms) / emergencyRooms.length) * 100 >= 90) {
+                        criticalAlerts.push({ key: 'critical-emergency-capacity', text: `Critical capacity warning: ${availableEmergencyRooms} emergency room${availableEmergencyRooms === 1 ? '' : 's'} available.` });
+                    }
+                    if (efficiency?.doctorUtilizationRate >= 85) {
+                        criticalAlerts.push({ key: 'critical-staff-bottleneck', text: `Staffing warning: doctor utilization is ${efficiency.doctorUtilizationRate}%.` });
+                    }
+                    if (efficiency?.criticalLoad >= 20) {
+                        criticalAlerts.push({ key: 'critical-system-health', text: `System health warning: critical-care load is ${efficiency.criticalLoad}%.` });
+                    }
+                } catch (error) {
+                    console.error('Critical alert check failed:', error);
+                }
+
+                const currentAlertKeys = new Set(criticalAlerts.map((alert) => alert.key));
+                if (criticalAlertKeysRef.current) {
+                    const newCriticalAlerts = criticalAlerts.filter((alert) => !criticalAlertKeysRef.current.has(alert.key));
+                    if (newCriticalAlerts.length) {
+                        const timestamp = Date.now();
+                        setNotifications((previous) => [
+                            ...newCriticalAlerts.map((alert, index) => ({ id: `critical-${timestamp}-${index}`, text: alert.text })),
+                            ...previous
+                        ].slice(0, 5));
+                        setUnreadCount((previous) => previous + newCriticalAlerts.length);
+                    }
+                }
+                criticalAlertKeysRef.current = currentAlertKeys;
+
                 const resetResponse = await authFetch('/api/admin/password-reset-requests');
                 const resetRequests = await resetResponse.json();
                 if (resetResponse.ok && Array.isArray(resetRequests)) {
@@ -180,7 +240,7 @@ const DashboardLayout = () => {
                         ...resetNotifications,
                         ...previous.filter((notification) => !String(notification.id).startsWith('password-reset-'))
                     ]);
-                    setUnreadCount(resetNotifications.length);
+                    setUnreadCount((previous) => Math.max(previous, resetNotifications.length));
                 }
             }
         } catch (err) {

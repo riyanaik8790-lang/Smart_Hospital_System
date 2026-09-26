@@ -24,6 +24,15 @@ function SkeletonCard() {
 
 const today = () => new Date().toISOString().split('T')[0];
 const DASHBOARD_DATE_RANGE_KEY = 'dashboardDateRange';
+const EFFICIENCY_CACHE_PREFIX = 'dashboardEfficiency';
+
+const efficiencyCacheKey = (dateRange) => `${EFFICIENCY_CACHE_PREFIX}:${dateRange.startDate}:${dateRange.endDate}`;
+const readEfficiencyCache = (dateRange) => {
+  try {
+    const cached = JSON.parse(localStorage.getItem(efficiencyCacheKey(dateRange)) || 'null');
+    return cached && typeof cached === 'object' ? cached : null;
+  } catch { return null; }
+};
 
 const readSavedDateRange = () => {
   try {
@@ -50,25 +59,35 @@ function EfficiencySkeleton() {
 }
 
 function EfficiencyInsights({ dateRange }) {
-  const [stats, setStats] = useState({ bedOccupancyRate: 0, doctorUtilizationRate: 0, treatmentEfficiency: 0, criticalLoad: 0, occupiedRooms: 0, totalRooms: 0, busyDoctors: 0, totalDoctors: 0, dischargedPatients: 0, totalPatients: 0, emergencyAdmitted: 0 });
-  const [loading, setLoading] = useState(true);
+  const emptyStats = { bedOccupancyRate: 0, doctorUtilizationRate: 0, treatmentEfficiency: 0, criticalLoad: 0, occupiedRooms: 0, totalRooms: 0, busyDoctors: 0, totalDoctors: 0, dischargedPatients: 0, totalPatients: 0, emergencyAdmitted: 0 };
+  const [stats, setStats] = useState(() => readEfficiencyCache(dateRange) || emptyStats);
+  const [loading, setLoading] = useState(() => !readEfficiencyCache(dateRange));
   const getRateColor = (rate, dangerThreshold, warningThreshold) => rate >= dangerThreshold ? 'danger' : rate >= warningThreshold ? 'warning' : 'success';
 
   useEffect(() => {
     let active = true;
     const loadInsights = async () => {
-      if (active) setLoading(true);
       try {
         const response = await authFetch(`/api/efficiency?${new URLSearchParams(dateRange)}`);
         if (!response.ok) throw new Error('Unable to load efficiency insights.');
         const data = await response.json();
-        if (active) setStats(data);
+        if (active) {
+          setStats(data);
+          try { localStorage.setItem(efficiencyCacheKey(dateRange), JSON.stringify(data)); } catch { /* Keep the in-memory result. */ }
+        }
       } catch (error) {
         console.error('Error loading dashboard efficiency insights:', error);
       } finally {
         if (active) setLoading(false);
       }
     };
+    const cachedStats = readEfficiencyCache(dateRange);
+    if (cachedStats) {
+      setStats(cachedStats);
+      setLoading(false);
+    } else {
+      setLoading(true);
+    }
     loadInsights();
     const interval = window.setInterval(loadInsights, 3000);
     return () => { active = false; window.clearInterval(interval); };

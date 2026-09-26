@@ -2,10 +2,20 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState } 
 import { authFetch } from '../api/authFetch';
 
 const RoomDataContext = createContext(null);
+const ROOMS_CACHE_KEY = 'dashboardRooms';
+
+const readRoomsCache = () => {
+    try {
+        const cachedRooms = JSON.parse(localStorage.getItem(ROOMS_CACHE_KEY) || 'null');
+        return Array.isArray(cachedRooms) ? cachedRooms : null;
+    } catch {
+        return null;
+    }
+};
 
 export function RoomDataProvider({ children }) {
-    const [rooms, setRooms] = useState([]);
-    const [isLoading, setIsLoading] = useState(true);
+    const [rooms, setRooms] = useState(() => readRoomsCache() || []);
+    const [isLoading, setIsLoading] = useState(() => !readRoomsCache());
 
     const refreshRooms = useCallback(async () => {
         try {
@@ -13,7 +23,13 @@ export function RoomDataProvider({ children }) {
             if (!response.ok) throw new Error('Unable to load rooms.');
 
             const data = await response.json();
-            setRooms(Array.isArray(data) ? data : []);
+            const nextRooms = Array.isArray(data) ? data : [];
+            setRooms(nextRooms);
+            try {
+                localStorage.setItem(ROOMS_CACHE_KEY, JSON.stringify(nextRooms));
+            } catch {
+                // Continue normally when local storage is unavailable.
+            }
         } catch (error) {
             console.error('Error fetching rooms:', error);
         } finally {
