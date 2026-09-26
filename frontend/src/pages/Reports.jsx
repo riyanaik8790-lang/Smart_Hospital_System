@@ -182,12 +182,18 @@ const Reports = () => {
     setExporting("pdf");
     setExportError("");
     try {
-      const params = new URLSearchParams({
-        startDate: dateRange.startDate || "",
-        endDate: dateRange.endDate || ""
+      // Send the already-rendered state. This guarantees the PDF is a snapshot
+      // of the exact chart and KPI cards the user can see, with no second fetch.
+      const response = await authFetch("/api/reports/performance/pdf", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          startDate: dateRange.startDate,
+          endDate: dateRange.endDate,
+          chartData,
+          stats
+        })
       });
-      // The server uses these values to load the same date-range series as the UI.
-      const response = await authFetch(`/api/reports/performance/pdf?${params}`);
       if (!response.ok) {
         const message = response.headers.get("content-type")?.includes("application/json")
           ? (await response.json()).message

@@ -622,51 +622,25 @@ app.get("/api/reports/efficiency/pdf", verifyToken, requireRole("admin"), async 
   }
 });
 
-app.get("/api/reports/performance/pdf", verifyToken, requireRole("admin"), async (req, res) => {
+app.post("/api/reports/performance/pdf", verifyToken, requireRole("admin"), async (req, res) => {
   try {
-    const startDate = String(req.query.startDate || '');
-    const requestedEndDate = String(req.query.endDate || '');
-    if (!isValidReportDate(startDate) || !isValidReportDate(requestedEndDate)) {
+    const startDate = String(req.body?.startDate || '');
+    const endDate = String(req.body?.endDate || '');
+    if (!isValidReportDate(startDate) || !isValidReportDate(endDate) || startDate > endDate) {
       return res.status(400).json({ message: "startDate and endDate must use valid YYYY-MM-DD values." });
     }
-
-    const today = new Date();
-    const currentDate = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
-    const endDate = requestedEndDate > currentDate ? currentDate : requestedEndDate;
-    if (startDate > endDate) {
-      return res.status(400).json({ message: "The start date must not be after the current date." });
+    if (!Array.isArray(req.body?.chartData)) {
+      return res.status(400).json({ message: "The visible chart data is required to generate the PDF." });
     }
 
-    const [trendRows] = await db.execute(
-      `WITH report_days AS (
-         SELECT generate_series($1::date, $2::date, INTERVAL '1 day')::date AS date
-       )
-       SELECT
-         TO_CHAR(report_days.date, 'YYYY-MM-DD') AS date,
-         COUNT(p.patient_id) FILTER (WHERE p.created_at::date = report_days.date)::int AS admitted,
-         COUNT(p.patient_id) FILTER (WHERE p.discharged_at::date = report_days.date)::int AS discharged,
-         COUNT(DISTINCT p.doctor_id) FILTER (
-           WHERE p.doctor_id IS NOT NULL
-             AND p.created_at::date <= report_days.date
-             AND (
-               (p.discharged_at IS NULL AND LOWER(p.status) <> 'discharged')
-               OR p.discharged_at::date > report_days.date
-             )
-         )::int AS "busyDoctors"
-       FROM report_days
-       LEFT JOIN patients p ON p.created_at::date <= report_days.date
-       GROUP BY report_days.date
-       ORDER BY report_days.date ASC`,
-      [startDate, endDate]
-    );
-    const chartData = trendRows.map((point) => ({
-      date: point.date,
-      label: new Date(`${point.date}T00:00:00`).toLocaleDateString(undefined, { month: 'short', day: '2-digit' }),
+    const chartData = req.body.chartData.map((point) => ({
+      date: String(point.date || ''),
+      label: String(point.label || point.date || ''),
       admitted: Number(point.admitted) || 0,
       discharged: Number(point.discharged) || 0,
       busyDoctors: Number(point.busyDoctors) || 0
     }));
-    const stats = await getEfficiencyStats();
+    const stats = req.body?.stats || {};
     const generatedAt = new Date();
     const fileDate = generatedAt.toISOString().replace(/[:.]/g, "-").slice(0, 16);
     const document = new PDFDocument({ margin: 40, size: "A4" });
