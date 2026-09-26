@@ -10,7 +10,15 @@ const EMPTY_FORM = {
   appointment_time: '',
   reason: ''
 };
+const EMPTY_EDIT_FORM = {
+  doctor_id: '',
+  appointment_date: '',
+  appointment_time: '',
+  reason: '',
+  status: 'Scheduled'
+};
 const APPOINTMENT_STATUSES = ['All', 'Upcoming', 'Completed', 'Cancelled'];
+const EDITABLE_STATUSES = ['Scheduled', 'Completed', 'Cancelled', 'No-show'];
 const APPOINTMENT_TIME_SLOTS = Array.from({ length: 33 }, (_, index) => {
   const minutesSinceOpening = (9 * 60) + (index * 15);
   const hour = String(Math.floor(minutesSinceOpening / 60)).padStart(2, '0');
@@ -69,6 +77,9 @@ const AppointmentsPage = () => {
   const [pickerMinute, setPickerMinute] = useState(0);
   const [pickerPeriod, setPickerPeriod] = useState('AM');
   const [draggingClock, setDraggingClock] = useState(false);
+  const [editingAppointment, setEditingAppointment] = useState(null);
+  const [editForm, setEditForm] = useState(EMPTY_EDIT_FORM);
+  const [savingEdit, setSavingEdit] = useState(false);
   const role = (localStorage.getItem('role') || '').toLowerCase();
   const canBook = ['admin', 'receptionist'].includes(role);
   const filteredAppointments = appointments.filter((appointment) => {
@@ -236,8 +247,72 @@ const AppointmentsPage = () => {
     }
   };
 
-  const handleEdit = (id) => {
-    console.log('Editing appointment:', id);
+  const handleEdit = (appointment) => {
+    setEditingAppointment(appointment);
+    setEditForm({
+      doctor_id: String(appointment.doctor_id || ''),
+      appointment_date: appointment.appointment_date || '',
+      appointment_time: appointment.appointment_time || '',
+      reason: appointment.reason || '',
+      status: appointment.status || 'Scheduled'
+    });
+  };
+
+  const closeEditModal = () => {
+    if (savingEdit) return;
+    setEditingAppointment(null);
+    setEditForm(EMPTY_EDIT_FORM);
+  };
+
+  const handleEditChange = (event) => {
+    const { name, value } = event.target;
+    setEditForm((current) => ({ ...current, [name]: value }));
+  };
+
+  const handleSaveChanges = async (event) => {
+    event.preventDefault();
+    if (!editingAppointment) return;
+
+    if (!editForm.doctor_id || !editForm.appointment_date || !editForm.appointment_time) {
+      notify('Doctor, date, and time are required.', 'error');
+      return;
+    }
+    if (editForm.appointment_date > localToday()) {
+      notify(`Appointment date cannot be after ${localToday()}.`, 'error');
+      return;
+    }
+    if (!APPOINTMENT_TIME_SLOTS.includes(editForm.appointment_time)) {
+      notify('Please choose an available appointment time.', 'error');
+      return;
+    }
+
+    setSavingEdit(true);
+    try {
+      const response = await fetch(`/appointments/${editingAppointment.appointment_id}`, {
+        method: 'PUT',
+        headers: authHeaders(),
+        body: JSON.stringify(editForm)
+      });
+      const updatedAppointment = await response.json();
+      if (!response.ok) throw new Error(updatedAppointment.message || 'Unable to save appointment changes.');
+
+      setAppointments((currentAppointments) => currentAppointments.map((appointment) =>
+        appointment.appointment_id === editingAppointment.appointment_id
+          ? {
+              ...appointment,
+              ...updatedAppointment,
+              doctor_name: doctors.find((doctor) => String(doctor.doctor_id) === String(updatedAppointment.doctor_id))?.name || appointment.doctor_name
+            }
+          : appointment
+      ));
+      setEditingAppointment(null);
+      setEditForm(EMPTY_EDIT_FORM);
+      notify('Appointment updated successfully.');
+    } catch (error) {
+      notify(error.message, 'error');
+    } finally {
+      setSavingEdit(false);
+    }
   };
 
   const updateAppointmentStatus = async (id, status) => {
@@ -420,7 +495,7 @@ const AppointmentsPage = () => {
                   <td><span className={`badge ${statusClass(appointment.status)}`}>{appointment.status}</span></td>
                   <td>
                     <div className="appointment-actions">
-                      <button className="btn btn-outline" type="button" onClick={() => handleEdit(appointment.appointment_id)} aria-label={`Edit appointment ${appointment.appointment_id}`}><Pencil size={14} /> Edit</button>
+                      <button className="btn btn-outline" type="button" onClick={() => handleEdit(appointment)} aria-label={`Edit appointment ${appointment.appointment_id}`}><Pencil size={14} /> Edit</button>
                       <button className="btn btn-danger" type="button" onClick={() => handleCancel(appointment.appointment_id)} disabled={appointment.status === 'Completed' || appointment.status === 'Cancelled'} aria-label={`Cancel appointment ${appointment.appointment_id}`}><XCircle size={14} /> Cancel</button>
                       <button className="btn btn-outline" type="button" onClick={() => handleMarkCompleted(appointment.appointment_id)} disabled={appointment.status === 'Completed' || appointment.status === 'Cancelled'} aria-label={`Mark appointment ${appointment.appointment_id} completed`}><CheckCircle size={14} /> Mark Completed</button>
                     </div>
@@ -433,6 +508,58 @@ const AppointmentsPage = () => {
           </table>
         </div>
       </section>
+
+      {editingAppointment && (
+        <div className="appointment-edit-overlay" role="presentation" onMouseDown={closeEditModal}>
+          <div className="appointment-edit-modal" role="dialog" aria-modal="true" aria-labelledby="edit-appointment-title" onMouseDown={(event) => event.stopPropagation()}>
+            <div className="appointment-edit-header">
+              <div>
+                <p className="appointment-edit-eyebrow">Appointment #{editingAppointment.appointment_id}</p>
+                <h2 id="edit-appointment-title">Edit appointment</h2>
+                <p>Update the visit details for {editingAppointment.patient_name}.</p>
+              </div>
+              <button className="appointment-edit-close" type="button" onClick={closeEditModal} aria-label="Close edit appointment modal">×</button>
+            </div>
+            <form onSubmit={handleSaveChanges}>
+              <div className="form-grid appointment-edit-grid">
+                <div className="input-group">
+                  <label htmlFor="edit-doctor">Doctor *</label>
+                  <select id="edit-doctor" className="form-control" name="doctor_id" value={editForm.doctor_id} onChange={handleEditChange} required>
+                    <option value="">Select a doctor</option>
+                    {doctors.map((doctor) => <option key={doctor.doctor_id} value={doctor.doctor_id}>{doctor.name} — {doctor.specialization}</option>)}
+                  </select>
+                </div>
+                <div className="input-group">
+                  <label htmlFor="edit-date">Date *</label>
+                  <input id="edit-date" className="form-control" name="appointment_date" value={editForm.appointment_date} onChange={handleEditChange} type="date" max={localToday()} required />
+                  <p className="help-text">Dates cannot be later than today ({localToday()}).</p>
+                </div>
+                <div className="input-group">
+                  <label htmlFor="edit-time">Time *</label>
+                  <select id="edit-time" className="form-control" name="appointment_time" value={editForm.appointment_time} onChange={handleEditChange} required>
+                    <option value="">Select a time</option>
+                    {APPOINTMENT_TIME_SLOTS.map((time) => <option key={time} value={time}>{formatTime(time)}</option>)}
+                  </select>
+                </div>
+                <div className="input-group">
+                  <label htmlFor="edit-status">Status *</label>
+                  <select id="edit-status" className="form-control" name="status" value={editForm.status} onChange={handleEditChange} required>
+                    {EDITABLE_STATUSES.map((status) => <option key={status} value={status}>{status}</option>)}
+                  </select>
+                </div>
+                <div className="input-group appointment-edit-reason">
+                  <label htmlFor="edit-reason">Reason</label>
+                  <textarea id="edit-reason" className="form-control" name="reason" value={editForm.reason} onChange={handleEditChange} placeholder="Reason for visit" rows="3" />
+                </div>
+              </div>
+              <div className="appointment-edit-actions">
+                <button className="btn btn-outline" type="button" onClick={closeEditModal} disabled={savingEdit}>Cancel</button>
+                <button className="btn btn-primary" type="submit" disabled={savingEdit}>{savingEdit ? 'Saving...' : 'Save Changes'}</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {timePickerOpen && (
         <div className="clock-picker-overlay" role="presentation" onClick={() => setTimePickerOpen(false)}>

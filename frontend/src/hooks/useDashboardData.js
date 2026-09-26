@@ -29,6 +29,7 @@ export function useDashboardData(roomData, dateRange) {
     }, [dateRange?.startDate, dateRange?.endDate]);
 
     useEffect(() => {
+        setIsLoading(true);
         const initialFetch = window.setTimeout(refreshDashboardData, 0);
         const interval = window.setInterval(refreshDashboardData, 3000);
         return () => {

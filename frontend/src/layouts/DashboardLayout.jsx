@@ -4,6 +4,7 @@ import { authFetch } from '../api/authFetch';
 import Avatar from '../components/Avatar';
 import PageGreeting from '../components/PageGreeting';
 import { RoomDataProvider } from '../contexts/RoomDataContext';
+import { useNotificationChime } from '../hooks/useNotificationChime';
 import {
     LayoutDashboard,
     Users,
@@ -36,9 +37,12 @@ const DashboardLayout = () => {
     const [showProfile, setShowProfile] = useState(false);
 
     const lastPatientIdRef = useRef(null);
+    const urgentPatientIdsRef = useRef(null);
+    const previousUnreadCountRef = useRef(null);
 
     const [notifications, setNotifications] = useState([]);
     const [unreadCount, setUnreadCount] = useState(0);
+    const playNotificationChime = useNotificationChime();
 
     const [profile, setProfile] = useState(null);
     const role = readStoredText('role', '').toLowerCase();
@@ -125,6 +129,20 @@ const DashboardLayout = () => {
             const res = await authFetch('/patients');
             const data = await res.json();
 
+            // Track urgent patients independently of the notification list so
+            // a newly appearing Critical/High patient receives an alert even
+            // when it is not the first item returned by the API.
+            if (Array.isArray(data)) {
+                const urgentIds = new Set(data
+                    .filter((patient) => patient.priority_label === 'Critical' || patient.priority_label === 'High')
+                    .map((patient) => String(patient.patient_id)));
+                if (urgentPatientIdsRef.current) {
+                    const hasNewUrgentPatient = [...urgentIds].some((id) => !urgentPatientIdsRef.current.has(id));
+                    if (hasNewUrgentPatient) playNotificationChime();
+                }
+                urgentPatientIdsRef.current = urgentIds;
+            }
+
             if (data && data.length > 0) {
                 const latest = data[0];
 
@@ -177,6 +195,15 @@ const DashboardLayout = () => {
 
         return () => clearInterval(interval);
     }, []);
+
+    // The first value establishes the baseline silently. Subsequent increases
+    // in the visible badge count produce one soft alert after audio is unlocked.
+    useEffect(() => {
+        if (previousUnreadCountRef.current !== null && unreadCount > previousUnreadCountRef.current) {
+            playNotificationChime();
+        }
+        previousUnreadCountRef.current = unreadCount;
+    }, [unreadCount, playNotificationChime]);
 
     // ==========================
     // CLOSE DROPDOWN ON OUTSIDE CLICK

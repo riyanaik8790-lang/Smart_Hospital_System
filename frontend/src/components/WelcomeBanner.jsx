@@ -22,15 +22,15 @@ export default function WelcomeBanner() {
       className="welcome-banner"
       aria-label="Welcome message"
     >
-      <div className="min-w-0">
-        <p className="text-xl font-bold text-gray-800">
+      <div className="welcome-banner__content min-w-0">
+        <p className="welcome-banner__title text-xl font-bold">
           {getGreeting(hour)}, {name}!
         </p>
-        <p className="mt-1 text-sm text-gray-500">
+        <p className="welcome-banner__subtitle mt-1 text-sm">
           Here is what&apos;s happening at the hospital today.
         </p>
       </div>
-      <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-blue-100 text-blue-500" aria-hidden="true">
+      <div className="welcome-banner__icon flex h-12 w-12 shrink-0 items-center justify-center rounded-full" aria-hidden="true">
         <GreetingIcon size={24} strokeWidth={1.8} />
       </div>
     </section>

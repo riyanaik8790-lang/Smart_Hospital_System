@@ -1,7 +1,62 @@
 import React, { useState, useEffect } from 'react';
-import { AlertTriangle, Clock, Activity, Heart, ArrowRight } from 'lucide-react';
+import { AlertTriangle, Clock3, Activity, Heart } from 'lucide-react';
 import { authFetch } from '../api/authFetch';
 import Avatar from '../components/Avatar';
+
+const PRIORITY_CONFIG = {
+    high: { label: 'High Priority', accent: 'red', icon: AlertTriangle, emptyCopy: 'No high priority patients' },
+    medium: { label: 'Medium Priority', accent: 'orange', icon: Heart, emptyCopy: 'No medium priority patients' },
+    low: { label: 'Low Priority', accent: 'green', icon: Activity, emptyCopy: 'No low priority patients' }
+};
+
+const PriorityColumn = ({ priority, patients }) => {
+    const { label, accent, icon: Icon, emptyCopy } = PRIORITY_CONFIG[priority];
+
+    return (
+        <section className={`priority-queue-column priority-queue-column--${accent}`} aria-label={`${label} queue`}>
+            <header className="priority-queue-column__header">
+                <div className="priority-queue-column__title">
+                    <span className="priority-queue-column__icon"><Icon size={18} aria-hidden="true" /></span>
+                    <div>
+                        <h2>{label}</h2>
+                        <p>{accent === 'red' ? 'Immediate attention' : accent === 'orange' ? 'Needs timely review' : 'Stable and monitored'}</p>
+                    </div>
+                </div>
+                <span className={`badge badge-${priority === 'high' ? 'high' : priority === 'medium' ? 'medium' : 'low'}`}>{patients.length}</span>
+            </header>
+
+            <div className="priority-queue-column__content">
+                {patients.length > 0 ? patients.map((patient) => (
+                    <article className={`priority-patient-card priority-patient-card--${accent}`} key={patient.patient_id}>
+                        <div className="priority-patient-card__topline">
+                            <div className="priority-patient-card__patient">
+                                <Avatar name={patient.name} size="sm" />
+                                <strong>{patient.name}</strong>
+                            </div>
+                            <span className="priority-patient-card__id">#{patient.patient_id}</span>
+                        </div>
+                        <dl className="priority-patient-card__details">
+                            <div>
+                                <dt>Assigned doctor</dt>
+                                <dd>{patient.doctor_name ? <><Avatar name={patient.doctor_name} avatarUrl={patient.doctor_avatar_url} size="sm" />{patient.doctor_name}</> : 'Unassigned'}</dd>
+                            </div>
+                            <div>
+                                <dt>Location</dt>
+                                <dd>{patient.room_number ? `Room ${patient.room_number}` : 'Waiting area'}</dd>
+                            </div>
+                        </dl>
+                    </article>
+                )) : (
+                    <div className="priority-queue-empty">
+                        <span className="priority-queue-empty__icon"><Clock3 size={24} aria-hidden="true" /></span>
+                        <strong>Queue clear</strong>
+                        <p>{emptyCopy} right now.</p>
+                    </div>
+                )}
+            </div>
+        </section>
+    );
+};
 
 const PriorityQueuePage = () => {
     const [patients, setPatients] = useState([]);
@@ -46,87 +101,10 @@ const PriorityQueuePage = () => {
                 </div>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '24px' }}>
-                {/* High Priority Column */}
-                <div style={{ background: 'var(--surface)', borderRadius: 'var(--radius-lg)', padding: '20px', borderTop: '4px solid var(--danger)', boxShadow: 'var(--shadow-md)' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-                        <h3 style={{ fontSize: '16px', fontWeight: 600, color: 'var(--danger)', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                            <Activity size={18} /> High Priority (Red)
-                        </h3>
-                        <span className="badge badge-high">{highQueue.length}</span>
-                    </div>
-
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                        {highQueue.map(patient => (
-                            <div key={patient.patient_id} style={{ background: 'var(--danger-light)', borderRadius: 'var(--radius-md)', padding: '16px', border: '1px solid rgba(239, 68, 68, 0.2)' }}>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                                    <span style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 600 }}><Avatar name={patient.name} size="sm" />{patient.name}</span>
-                                    <span style={{ fontSize: '12px', color: 'var(--text-gray)' }}>#{patient.patient_id}</span>
-                                </div>
-                                <div style={{ fontSize: '14px', color: 'var(--danger)', fontWeight: 500, marginBottom: '12px' }}>
-                                    Doctor: {patient.doctor_name ? <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}><Avatar name={patient.doctor_name} avatarUrl={patient.doctor_avatar_url} size="sm" />{patient.doctor_name}</span> : 'Unassigned'} | Room: {patient.room_number || 'Waiting'}
-                                </div>
-                            </div>
-                        ))}
-                        {highQueue.length === 0 && (
-                            <div className="text-center" style={{ padding: '20px', color: 'var(--text-gray)' }}>No high priority patients.</div>
-                        )}
-                    </div>
-                </div>
-
-                {/* Medium Priority Column */}
-                <div style={{ background: 'var(--surface)', borderRadius: 'var(--radius-lg)', padding: '20px', borderTop: '4px solid var(--warning)', boxShadow: 'var(--shadow-md)' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-                        <h3 style={{ fontSize: '16px', fontWeight: 600, color: '#B45309', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                            <Heart size={18} /> Medium Priority (Orange)
-                        </h3>
-                        <span className="badge badge-medium">{mediumQueue.length}</span>
-                    </div>
-
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                        {mediumQueue.map(patient => (
-                            <div key={patient.patient_id} style={{ background: 'var(--warning-light)', borderRadius: 'var(--radius-md)', padding: '16px', border: '1px solid rgba(245, 158, 11, 0.2)' }}>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                                    <span style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 600 }}><Avatar name={patient.name} size="sm" />{patient.name}</span>
-                                    <span style={{ fontSize: '12px', color: 'var(--text-gray)' }}>#{patient.patient_id}</span>
-                                </div>
-                                <div style={{ fontSize: '14px', color: '#B45309', fontWeight: 500, marginBottom: '12px' }}>
-                                    Doctor: {patient.doctor_name ? <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}><Avatar name={patient.doctor_name} avatarUrl={patient.doctor_avatar_url} size="sm" />{patient.doctor_name}</span> : 'Unassigned'} | Room: {patient.room_number || 'Waiting'}
-                                </div>
-                            </div>
-                        ))}
-                        {mediumQueue.length === 0 && (
-                            <div className="text-center" style={{ padding: '20px', color: 'var(--text-gray)' }}>No medium priority patients.</div>
-                        )}
-                    </div>
-                </div>
-
-                {/* Low Priority Column */}
-                <div style={{ background: 'var(--surface)', borderRadius: 'var(--radius-lg)', padding: '20px', borderTop: '4px solid var(--success)', boxShadow: 'var(--shadow-md)' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-                        <h3 style={{ fontSize: '16px', fontWeight: 600, color: 'var(--success)', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                            <Activity size={18} /> Low Priority (Green)
-                        </h3>
-                        <span className="badge badge-low">{lowQueue.length}</span>
-                    </div>
-
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                        {lowQueue.map(patient => (
-                            <div key={patient.patient_id} style={{ background: 'var(--success-light)', borderRadius: 'var(--radius-md)', padding: '16px', border: '1px solid rgba(16, 185, 129, 0.2)' }}>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                                    <span style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 600 }}><Avatar name={patient.name} size="sm" />{patient.name}</span>
-                                    <span style={{ fontSize: '12px', color: 'var(--text-gray)' }}>#{patient.patient_id}</span>
-                                </div>
-                                <div style={{ fontSize: '14px', color: 'var(--success)', fontWeight: 500, marginBottom: '12px' }}>
-                                    Doctor: {patient.doctor_name ? <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}><Avatar name={patient.doctor_name} avatarUrl={patient.doctor_avatar_url} size="sm" />{patient.doctor_name}</span> : 'Unassigned'} | Room: {patient.room_number || 'Waiting'}
-                                </div>
-                            </div>
-                        ))}
-                        {lowQueue.length === 0 && (
-                            <div className="text-center" style={{ padding: '20px', color: 'var(--text-gray)' }}>No low priority patients.</div>
-                        )}
-                    </div>
-                </div>
+            <div className="priority-queue-grid">
+                <PriorityColumn priority="high" patients={highQueue} />
+                <PriorityColumn priority="medium" patients={mediumQueue} />
+                <PriorityColumn priority="low" patients={lowQueue} />
             </div>
         </>
     );

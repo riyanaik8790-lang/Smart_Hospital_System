@@ -859,10 +859,45 @@ app.put("/appointments/:appointment_id", verifyToken, requireRole("admin", "doct
   try {
     const appointmentId = Number(req.params.appointment_id);
     const allowedStatuses = new Set(["Scheduled", "Completed", "Cancelled", "No-show"]);
-    const { status } = req.body;
+    const { status, doctor_id, appointment_date, appointment_time, reason } = req.body;
 
     if (!Number.isInteger(appointmentId) || appointmentId <= 0 || !allowedStatuses.has(status)) {
       return res.status(400).json({ message: "Provide a valid appointment ID and status." });
+    }
+
+    const isEditingDetails = ["doctor_id", "appointment_date", "appointment_time", "reason"].some((field) =>
+      Object.prototype.hasOwnProperty.call(req.body, field)
+    );
+
+    if (isEditingDetails) {
+      const parsedDoctorId = Number(doctor_id);
+      const normalizedTime = typeof appointment_time === "string" ? appointment_time.trim() : "";
+      if (!Number.isInteger(parsedDoctorId) || parsedDoctorId <= 0 || !isValidDateOnly(appointment_date) || !isAllowedAppointmentTime(normalizedTime)) {
+        return res.status(400).json({ message: "Provide a valid doctor, date, and appointment time." });
+      }
+
+      const today = new Date();
+      const todayDate = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+      if (appointment_date > todayDate) {
+        return res.status(400).json({ message: "Appointment date cannot be later than today." });
+      }
+
+      const [activeDoctor] = await db.execute(
+        "SELECT doctor_id FROM doctors WHERE doctor_id = $1 AND status != 'Inactive'",
+        [parsedDoctorId]
+      );
+      if (!activeDoctor.length) return res.status(409).json({ message: "That doctor is no longer active. Choose another doctor." });
+
+      const [updatedDetails] = await db.execute(
+        `UPDATE appointments
+         SET doctor_id = $1, appointment_date = $2, appointment_time = $3, reason = $4, status = $5
+         WHERE appointment_id = $6
+         RETURNING appointment_id, doctor_id, TO_CHAR(appointment_date, 'YYYY-MM-DD') AS appointment_date,
+                   appointment_time, reason, status`,
+        [parsedDoctorId, appointment_date, normalizedTime, typeof reason === "string" ? reason.trim() || null : null, status, appointmentId]
+      );
+      if (!updatedDetails.length) return res.status(404).json({ message: "Appointment not found." });
+      return res.json(updatedDetails[0]);
     }
 
     const [updated] = await db.execute(
