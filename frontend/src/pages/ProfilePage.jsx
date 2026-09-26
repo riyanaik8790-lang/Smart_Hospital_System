@@ -211,7 +211,7 @@ function ProfilePage() {
       </form>
 
       <section className="section-card profile-card rounded-xl">
-        <label className="flex cursor-pointer items-center justify-between gap-4 rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700">
+        <label className="block cursor-pointer rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700">
           <span className="font-medium">Notification Sounds</span>
           <input
             type="checkbox"
