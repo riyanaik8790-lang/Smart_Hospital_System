@@ -10,6 +10,7 @@ import {
   Legend
 } from "recharts";
 import { ChevronDown, Download } from "lucide-react";
+import { useLocation } from 'react-router-dom';
 import { authFetch } from '../api/authFetch';
 
 const toDateInputValue = (date) => {
@@ -50,9 +51,15 @@ const createDailyTrendSeries = (startDate, endDate, metrics) => {
 };
 
 const Reports = () => {
+  const location = useLocation();
   const [data, setData] = useState([]);
   const [stats, setStats] = useState({});
   const [dateRange, setDateRange] = useState(() => {
+    const routeRange = location.state?.dateRange;
+    const maxDate = todayInputValue();
+    if (routeRange?.startDate && routeRange?.endDate && routeRange.startDate <= routeRange.endDate && routeRange.endDate <= maxDate) {
+      return { startDate: routeRange.startDate, endDate: routeRange.endDate };
+    }
     const endDate = todayInputValue();
     const start = new Date();
     start.setDate(start.getDate() - 6);
@@ -87,7 +94,8 @@ const Reports = () => {
   })();
 
   useEffect(() => {
-    authFetch("/api/efficiency")
+    const params = new URLSearchParams(dateRange);
+    authFetch(`/api/efficiency?${params}`)
       .then((res) => res.json())
       .then((res) => {
         setStats(res);
@@ -95,7 +103,7 @@ const Reports = () => {
       .catch((err) =>
         console.error("Error loading report:", err)
       );
-  }, []);
+  }, [dateRange]);
 
   useEffect(() => {
     let isCurrent = true;
