@@ -518,7 +518,15 @@ const AppointmentsPage = () => {
                   </td>
                 </tr>
               )) : (
-                <tr><td colSpan="8" className="text-center" style={{ padding: '32px', color: 'var(--text-gray)' }}>No results found.</td></tr>
+                <tr>
+                  <td colSpan={8} className="p-0">
+                    <div className="flex flex-col items-center justify-center py-10 text-center">
+                      <img src="/empty_state_medical.png" alt="No appointment records" className="w-48" />
+                      <h3 className="mt-4 text-lg font-semibold text-slate-700">No records found</h3>
+                      <p className="mt-1 text-sm text-slate-500">There are no appointments matching your current filters.</p>
+                    </div>
+                  </td>
+                </tr>
               )}
             </tbody>
           </table>
