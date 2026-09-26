@@ -1283,6 +1283,54 @@ app.delete("/users/:user_id", verifyToken, requireRole("admin"), async (req, res
   }
 });
 
+app.put("/users/:user_id/reactivate", verifyToken, requireRole("admin"), async (req, res) => {
+  try {
+    const userId = Number(req.params.user_id);
+    if (!Number.isInteger(userId) || userId <= 0) return res.status(400).json({ message: "Invalid user ID." });
+
+    const [users] = await db.execute(
+      "SELECT user_id, name, is_active, auth_user_id FROM users WHERE user_id = $1",
+      [userId]
+    );
+    const target = users[0];
+    if (!target) return res.status(404).json({ message: "User not found." });
+    if (target.is_active) return res.status(400).json({ message: "This account is already active." });
+
+    if (target.auth_user_id) {
+      const supabaseUrl = process.env.SUPABASE_URL;
+      const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+      if (!supabaseUrl || !serviceRoleKey) {
+        return res.status(503).json({ message: "Supabase Auth is not configured; account was not reactivated." });
+      }
+      const authResponse = await fetch(
+        `${supabaseUrl.replace(/\/$/, "")}/auth/v1/admin/users/${target.auth_user_id}`,
+        {
+          method: "PUT",
+          headers: {
+            apikey: serviceRoleKey,
+            Authorization: `Bearer ${serviceRoleKey}`,
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({ ban_duration: "none" })
+        }
+      );
+      if (!authResponse.ok) {
+        console.error("Supabase Auth reactivation failed:", await authResponse.text());
+        return res.status(502).json({ message: "Could not re-enable the linked Auth account; account was not reactivated." });
+      }
+    }
+
+    const [updatedUsers] = await db.execute(
+      "UPDATE users SET is_active = TRUE, deleted_at = NULL WHERE user_id = $1 RETURNING user_id, is_active, deleted_at",
+      [userId]
+    );
+    res.json({ message: "Account reactivated.", user: updatedUsers[0] });
+  } catch (err) {
+    console.error("Admin reactivation error:", err);
+    res.status(500).json({ message: "Unable to reactivate account." });
+  }
+});
+
 
 // =====================================================
 // DATA ROUTES
