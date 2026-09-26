@@ -5,6 +5,7 @@ import Avatar from '../components/Avatar';
 import AvatarSelectionModal from '../components/AvatarSelectionModal';
 import DeactivateAccountModal from '../components/DeactivateAccountModal';
 import { authFetch } from '../api/authFetch';
+import { useNotificationChime } from '../hooks/useNotificationChime';
 
 function ProfilePage() {
   const navigate = useNavigate();
@@ -19,6 +20,7 @@ function ProfilePage() {
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [soundEnabled, setSoundEnabled] = useState(() => localStorage.getItem('soundEnabled') !== 'false');
   const [passwordFields, setPasswordFields] = useState({ currentPassword: '', newPassword: '' });
+  const playNotificationChime = useNotificationChime();
   const [user, setUser] = useState({
     userId: null,
     name: localStorage.getItem('userName') || 'My account',
@@ -88,6 +90,7 @@ function ProfilePage() {
   const handleSoundEnabledChange = (enabled) => {
     setSoundEnabled(enabled);
     localStorage.setItem('soundEnabled', String(enabled));
+    if (enabled) playNotificationChime();
   };
 
   const saveProfile = async (event) => {

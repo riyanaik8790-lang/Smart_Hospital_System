@@ -1,8 +1,7 @@
 import { useCallback, useEffect, useRef } from 'react';
 
-// AudioContext must be created from a user gesture. The app uses a short,
-// low-volume two-note chime instead of an audio file so there is no asset to
-// fetch and no browser autoplay violation.
+// The AudioContext is unlocked by a real user gesture, then reused for a short,
+// low-volume two-note notification chime.
 export const useNotificationChime = () => {
   const contextRef = useRef(null);
   const unlockedRef = useRef(false);
@@ -17,17 +16,33 @@ export const useNotificationChime = () => {
   }, []);
 
   useEffect(() => {
+    const removeUnlockListeners = () => {
+      document.removeEventListener('pointerdown', unlockAudio, true);
+      document.removeEventListener('keydown', unlockAudio, true);
+      document.removeEventListener('touchstart', unlockAudio, true);
+    };
+
     const unlockAudio = () => {
       const context = getContext();
       if (!context) return;
-      context.resume().then(() => { unlockedRef.current = true; }).catch(() => {});
+      const markUnlocked = () => {
+        if (context.state !== 'running') return;
+        unlockedRef.current = true;
+        removeUnlockListeners();
+      };
+
+      if (context.state === 'running') {
+        markUnlocked();
+        return;
+      }
+      context.resume().then(markUnlocked).catch(() => {});
     };
 
-    document.addEventListener('pointerdown', unlockAudio, { once: true, capture: true });
-    document.addEventListener('keydown', unlockAudio, { once: true });
+    document.addEventListener('pointerdown', unlockAudio, true);
+    document.addEventListener('keydown', unlockAudio, true);
+    document.addEventListener('touchstart', unlockAudio, true);
     return () => {
-      document.removeEventListener('pointerdown', unlockAudio, true);
-      document.removeEventListener('keydown', unlockAudio);
+      removeUnlockListeners();
       contextRef.current?.close().catch(() => {});
     };
   }, [getContext]);
@@ -36,25 +51,39 @@ export const useNotificationChime = () => {
     const soundEnabled = localStorage.getItem('soundEnabled') !== 'false';
     if (!soundEnabled) return;
 
-    const context = contextRef.current;
-    const now = Date.now();
-    if (!unlockedRef.current || !context || context.state !== 'running' || now - lastPlayedAtRef.current < 750) return;
+    const context = contextRef.current || getContext();
+    if (!context) return;
 
-    lastPlayedAtRef.current = now;
-    const start = context.currentTime;
-    const gain = context.createGain();
-    gain.gain.setValueAtTime(0.0001, start);
-    gain.gain.exponentialRampToValueAtTime(0.045, start + 0.025);
-    gain.gain.exponentialRampToValueAtTime(0.0001, start + 0.42);
-    gain.connect(context.destination);
+    const playChime = () => {
+      const now = Date.now();
+      if (context.state !== 'running' || now - lastPlayedAtRef.current < 750) return;
 
-    [659.25, 880].forEach((frequency, index) => {
-      const oscillator = context.createOscillator();
-      oscillator.type = 'sine';
-      oscillator.frequency.setValueAtTime(frequency, start + (index * 0.1));
-      oscillator.connect(gain);
-      oscillator.start(start + (index * 0.1));
-      oscillator.stop(start + 0.45);
-    });
-  }, []);
+      lastPlayedAtRef.current = now;
+      const start = context.currentTime;
+      const gain = context.createGain();
+      gain.gain.setValueAtTime(0.0001, start);
+      gain.gain.exponentialRampToValueAtTime(0.045, start + 0.025);
+      gain.gain.exponentialRampToValueAtTime(0.0001, start + 0.42);
+      gain.connect(context.destination);
+
+      [659.25, 880].forEach((frequency, index) => {
+        const oscillator = context.createOscillator();
+        oscillator.type = 'sine';
+        oscillator.frequency.setValueAtTime(frequency, start + (index * 0.1));
+        oscillator.connect(gain);
+        oscillator.start(start + (index * 0.1));
+        oscillator.stop(start + 0.45);
+      });
+    };
+
+    if (context.state === 'running') {
+      unlockedRef.current = true;
+      playChime();
+    } else {
+      context.resume().then(() => {
+        unlockedRef.current = true;
+        playChime();
+      }).catch(() => {});
+    }
+  }, [getContext]);
 };
