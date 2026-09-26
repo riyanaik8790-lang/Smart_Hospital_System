@@ -32,6 +32,7 @@ const PatientsPage = () => {
 
     const [confirmDischargeId, setConfirmDischargeId] = useState(null);
     const [dischargingId, setDischargingId] = useState(null);
+    const isSearching = Boolean(searchInput.trim());
 
 
     const fetchPatients = async () => {
@@ -242,6 +243,7 @@ const PatientsPage = () => {
             )}
 
             {/* Add Patient form */}
+            {!isSearching && (
             <section className="section-card">
                 <div className="section-header">
                     <h2 className="section-title">Add Patient & Triage</h2>
@@ -292,6 +294,7 @@ const PatientsPage = () => {
                     </form>
                 </div>
             </section>
+            )}
 
             {/* Live Table */}
             <section className="section-card">
