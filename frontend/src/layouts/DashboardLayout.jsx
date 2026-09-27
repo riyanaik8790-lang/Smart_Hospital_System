@@ -436,7 +436,7 @@ const DashboardLayout = () => {
             <div className="main-content">
 
                 {/* TOPBAR */}
-                <div className="topbar">
+                <div className="topbar relative z-40">
 
                     {/* LEFT */}
                     <div className="topbar-left">
@@ -494,6 +494,7 @@ const DashboardLayout = () => {
 
                             {showNotif && (
                                 <div
+                                    className="absolute z-50"
                                     style={{
                                         position: 'absolute',
                                         top: '40px',

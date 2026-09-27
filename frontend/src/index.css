@@ -314,7 +314,7 @@ button:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
 .priority-patient-card__topline { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
 .priority-patient-card__patient { display: flex; min-width: 0; align-items: center; gap: 8px; }
 .priority-patient-card__patient strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 14px; }
-.priority-patient-card__id { color: var(--text-light); font-size: 12px; font-variant-numeric: tabular-nums; }
+.priority-patient-card__id { font-variant-numeric: tabular-nums; }
 .priority-patient-card__details { display: grid; grid-template-columns: 1.2fr 0.8fr; gap: 12px; margin-top: 14px; }
 .priority-patient-card__details div { min-width: 0; }
 .priority-patient-card__details dt { margin-bottom: 3px; color: var(--text-light); font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; }

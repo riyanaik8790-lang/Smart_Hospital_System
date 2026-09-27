@@ -9,6 +9,8 @@ const PRIORITY_CONFIG = {
     low: { label: 'Low Priority', accent: 'green', icon: Activity, emptyCopy: 'No low priority patients' }
 };
 
+const formatClinicalId = (patientId) => `ID-${String(patientId).padStart(3, '0')}`;
+
 const PriorityColumn = ({ priority, patients }) => {
     const { label, accent, icon: Icon, emptyCopy } = PRIORITY_CONFIG[priority];
 
@@ -33,7 +35,7 @@ const PriorityColumn = ({ priority, patients }) => {
                                 <Avatar name={patient.name} size="sm" />
                                 <strong>{patient.name}</strong>
                             </div>
-                            <span className="priority-patient-card__id">#{patient.patient_id}</span>
+                            <span className="priority-patient-card__id text-xs font-semibold px-2 py-1 rounded bg-slate-100 text-slate-500">{formatClinicalId(patient.patient_id)}</span>
                         </div>
                         <dl className="priority-patient-card__details">
                             <div>
