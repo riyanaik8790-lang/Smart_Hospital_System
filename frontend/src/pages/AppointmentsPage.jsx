@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { AlertTriangle, CalendarDays, CheckCircle, Clock3, Pencil, Plus, Search, XCircle } from 'lucide-react';
 import Avatar from '../components/Avatar';
+import { authFetch } from '../api/authFetch';
 
 const EMPTY_FORM = {
   patient_name: '',
@@ -60,11 +61,6 @@ const formatTime = (time) => {
   return `${hour % 12 || 12}:${String(minute).padStart(2, '0')} ${period}`;
 };
 
-const authHeaders = () => ({
-  'Content-Type': 'application/json',
-  Authorization: `Bearer ${localStorage.getItem('token') || ''}`
-});
-
 const statusClass = (status) => {
   if (status === 'Completed') return 'badge-low';
   if (status === 'Scheduled') return 'badge-medium';
@@ -114,7 +110,7 @@ const AppointmentsPage = () => {
 
   const fetchAppointments = useCallback(async () => {
     try {
-      const response = await fetch('/appointments', { headers: authHeaders() });
+      const response = await authFetch('/appointments');
       if (!response.ok) throw new Error('Could not load appointments');
       const data = await response.json();
       setAppointments(Array.isArray(data) ? data : []);
@@ -125,7 +121,7 @@ const AppointmentsPage = () => {
 
   const fetchDoctors = useCallback(async () => {
     try {
-      const response = await fetch('/doctors', { headers: authHeaders() });
+      const response = await authFetch('/doctors');
       const contentType = response.headers.get('content-type') || '';
       const data = contentType.includes('application/json')
         ? await response.json()
@@ -241,9 +237,9 @@ const AppointmentsPage = () => {
 
     setLoading(true);
     try {
-      const response = await fetch('/appointments', {
+      const response = await authFetch('/appointments', {
         method: 'POST',
-        headers: authHeaders(),
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData)
       });
       const data = await response.json();
@@ -304,9 +300,9 @@ const AppointmentsPage = () => {
 
     setSavingEdit(true);
     try {
-      const response = await fetch(`/appointments/${editingAppointment.appointment_id}`, {
+      const response = await authFetch(`/appointments/${editingAppointment.appointment_id}`, {
         method: 'PUT',
-        headers: authHeaders(),
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(editForm)
       });
       const updatedAppointment = await response.json();
@@ -333,9 +329,9 @@ const AppointmentsPage = () => {
 
   const updateAppointmentStatus = async (id, status) => {
     try {
-      const response = await fetch(`/appointments/${id}`, {
+      const response = await authFetch(`/appointments/${id}`, {
         method: 'PUT',
-        headers: authHeaders(),
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status })
       });
       const updatedAppointment = await response.json();
