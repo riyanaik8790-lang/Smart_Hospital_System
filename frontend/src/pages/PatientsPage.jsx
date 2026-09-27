@@ -317,7 +317,7 @@ const PatientsPage = () => {
                         <tbody>
                             {filteredPatients.length > 0 ? filteredPatients.map((patient) => (
                                 <tr key={patient.patient_id}>
-                                    <td>#{patient.patient_id}</td>
+                                    <td><span className="text-slate-600 font-medium">{`PT-${String(patient.patient_id).padStart(3, '0')}`}</span></td>
                                     <td>
                                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 500 }}>
                                             <Avatar name={patient.name} size="sm" />

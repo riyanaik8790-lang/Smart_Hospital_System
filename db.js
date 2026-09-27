@@ -1,8 +1,14 @@
 const { Pool } = require("pg");
 
+// This module is cached by Node.js, so this one Pool instance is shared by
+// every route for the lifetime of the process. Keep its size below the
+// session-pooler limit used by the hosted PostgreSQL service.
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  ssl: { rejectUnauthorized: false }
+  ssl: { rejectUnauthorized: false },
+  max: Number(process.env.PGPOOL_MAX || 5),
+  idleTimeoutMillis: 30_000,
+  connectionTimeoutMillis: 10_000
 });
 
 function convertPlaceholders(sql) {

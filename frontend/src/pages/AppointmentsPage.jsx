@@ -498,7 +498,7 @@ const AppointmentsPage = () => {
             <tbody>
               {filteredAppointments.length ? filteredAppointments.map((appointment) => (
                 <tr key={appointment.appointment_id}>
-                  <td>#{appointment.appointment_id}</td>
+                  <td><span className="text-slate-600 font-medium">{`APT-${String(appointment.appointment_id).padStart(3, '0')}`}</span></td>
                   <td><div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><Avatar name={appointment.patient_name} size="sm" /><div><strong>{appointment.patient_name}</strong><br /><span className="help-text">{appointment.patient_phone || 'No phone'}</span></div></div></td>
                   <td>{appointment.doctor_name ? <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><Avatar name={appointment.doctor_name} size="sm" />{appointment.doctor_name}</div> : 'Unassigned'}</td>
                   <td className="whitespace-nowrap"><span className="whitespace-nowrap">{formatAppointmentDate(appointment.appointment_date)}</span></td>

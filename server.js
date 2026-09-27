@@ -249,15 +249,15 @@ app.get("/dashboard", verifyToken, async (req, res) => {
       criticalPatients: { sql: `SELECT COUNT(*) AS count FROM patients${patientFilter}${dateRange ? " AND" : " WHERE"} LOWER(priority_label)='critical' AND LOWER(status)='admitted'`, params: patientParams }
     };
 
-    const keys = Object.keys(queries);
-    const results = await Promise.all(keys.map((key) => {
+    // Run these counts one at a time. Fanning them out with Promise.all can
+    // open enough simultaneous sessions to exceed the hosted pooler limit.
+    for (const key of Object.keys(queries)) {
       const query = queries[key];
-      return typeof query === 'string' ? db.execute(query) : db.execute(query.sql, query.params);
-    }));
-
-    results.forEach((result, index) => {
-      stats[keys[index]] = Number(result[0][0].count) || 0;
-    });
+      const result = typeof query === 'string'
+        ? await db.execute(query)
+        : await db.execute(query.sql, query.params);
+      stats[key] = Number(result[0][0].count) || 0;
+    }
 
     res.json(stats);
   } catch (err) {
@@ -284,16 +284,16 @@ async function getEfficiencyStats(dateRange = null) {
       emergencyAdmitted: { sql: `SELECT COUNT(*) AS count FROM patients${patientFilter}${dateRange ? " AND" : " WHERE"} LOWER(priority_label)='critical' AND LOWER(status)='admitted'`, params: patientParams }
   };
 
-  const keys = Object.keys(queries);
-  const results = await Promise.all(keys.map((key) => {
+  // Keep the efficiency endpoint sequential as well: it shares the same
+  // database pool with /dashboard and the rest of the application.
+  for (const key of Object.keys(queries)) {
     const query = queries[key];
-    return typeof query === 'string' ? db.execute(query) : db.execute(query.sql, query.params);
-  }));
-
-  results.forEach((result, index) => {
+    const result = typeof query === 'string'
+      ? await db.execute(query)
+      : await db.execute(query.sql, query.params);
     // node-postgres returns PostgreSQL COUNT(*) values as strings.
-    stats[keys[index]] = Number(result[0][0].count) || 0;
-  });
+    stats[key] = Number(result[0][0].count) || 0;
+  }
 
   const bedOccupancyRate = stats.totalRooms > 0 ? (stats.occupiedRooms / stats.totalRooms) * 100 : 0;
   const doctorUtilizationRate = stats.totalDoctors > 0 ? (stats.busyDoctors / stats.totalDoctors) * 100 : 0;
